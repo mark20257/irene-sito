@@ -1,31 +1,24 @@
-import type { CSSProperties } from 'react'
 import { getDictionary, t, type Locale } from '@/content'
 import { clients, testimonials } from '@/content/data/proof'
-import type { ClientLogo } from '@/content/types'
 import { Marquee } from '@/components/motion/Marquee'
-import { Note } from '@/components/ui/Note'
 import { SectionHead } from '@/components/ui/SectionHead'
 import { cn } from '@/lib/utils'
 
-/** "Loghi" tipografici: ogni brand con il suo carattere (sostituibili con SVG veri). */
-const logoStyle: Record<ClientLogo['style'], CSSProperties> = {
-  serif: { fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400, textTransform: 'none', letterSpacing: '-0.02em' },
-  display: { fontFamily: 'var(--font-display)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.03em', fontStretch: '85%' },
-  condensed: { fontFamily: 'var(--font-display)', fontWeight: 700, textTransform: 'uppercase', fontStretch: '75%', letterSpacing: '0.02em' },
-  wide: { fontFamily: 'var(--font-display)', fontWeight: 300, textTransform: 'uppercase', fontStretch: '100%', letterSpacing: '0.18em' },
-  mono: { fontFamily: 'var(--font-mono)', fontWeight: 400, textTransform: 'lowercase', letterSpacing: '-0.02em' },
-}
-
-function Logo({ logo }: { logo: ClientLogo }) {
+function Logo({ name }: { name: string }) {
   return (
-    <span className="flex items-center gap-[clamp(1.5rem,4vw,4rem)] px-[clamp(0.75rem,2vw,2rem)]">
-      <span className="text-[clamp(2.25rem,5.5vw,5.5rem)] leading-none whitespace-nowrap" style={logoStyle[logo.style]}>
-        {logo.name}
-      </span>
-      <span aria-hidden="true" className="h-3 w-3 rotate-45 bg-acid shadow-[0_0_0_1px_var(--color-ink)]" />
+    <span className="flex items-center gap-[clamp(1.5rem,4vw,3.5rem)] px-[clamp(0.75rem,2vw,1.75rem)]">
+      <span className="text-[clamp(1.9rem,4.2vw,4rem)] leading-none font-semibold tracking-[-0.05em] whitespace-nowrap text-ink/85">{name}</span>
+      <span aria-hidden="true" className="h-3 w-3 rounded-full bg-[linear-gradient(135deg,#6b3cf6,#c4b5fd)]" />
     </span>
   )
 }
+
+const initials = (name: string) =>
+  name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
 
 export function Clients({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale)
@@ -33,71 +26,61 @@ export function Clients({ locale }: { locale: Locale }) {
   const half = Math.ceil(clients.length / 2)
 
   return (
-    <section id={dict.sections.clients.id} data-theme="paper" aria-labelledby="clients-title" className="theme-paper section overflow-hidden">
+    <section id={dict.sections.clients.id} data-theme="light" aria-labelledby="clients-title" className="theme-light section overflow-hidden">
       <div className="wrap">
-        <SectionHead index={8} id="clients-title" label={dict.sections.clients.label} title={c.title} />
+        <SectionHead id="clients-title" label={dict.sections.clients.label} title={c.title} align="center" />
       </div>
 
-      <div className="mt-[clamp(3rem,7vw,7rem)] grid gap-4 border-y border-[var(--rule)] py-8" aria-label={c.marqueeLabel} role="region">
+      <div className="mt-[clamp(3rem,6vw,5rem)] grid gap-5 py-4 [mask-image:linear-gradient(90deg,transparent,#000_12%,#000_88%,transparent)]" aria-label={c.marqueeLabel} role="region">
         <ul className="sr-only">
           {clients.map((l) => (
             <li key={l.name}>{l.name}</li>
           ))}
         </ul>
         <div aria-hidden="true">
-          <Marquee speed={55}>
+          <Marquee speed={50}>
             {clients.slice(0, half).map((l) => (
-              <Logo key={l.name} logo={l} />
+              <Logo key={l.name} name={l.name} />
             ))}
           </Marquee>
         </div>
         <div aria-hidden="true">
-          <Marquee speed={45} reverse>
+          <Marquee speed={40} reverse>
             {clients.slice(half).map((l) => (
-              <Logo key={l.name} logo={l} />
+              <Logo key={l.name} name={l.name} />
             ))}
           </Marquee>
         </div>
       </div>
 
-      <div className="wrap mt-[clamp(4rem,9vw,9rem)]">
-        <p className="label muted mb-10 flex items-center gap-3">
-          <span className="h-px w-10 bg-current" aria-hidden="true" />
-          {c.testimonialsTitle}
-        </p>
-        <ul className="grid-12 gap-y-14">
+      <div className="wrap mt-[clamp(4rem,8vw,7rem)]">
+        <p className="mb-8 text-center text-[0.95rem] font-medium text-muted">{c.testimonialsTitle}</p>
+        <ul className="grid items-start gap-5 lg:grid-cols-3" data-reveal-group>
           {testimonials.map((tm, i) => (
-            <li
-              key={tm.author}
-              className={cn(
-                'col-span-4',
-                i === 0 && 'lg:col-span-6',
-                i === 1 && 'lg:col-span-5 lg:col-start-8 lg:mt-40',
-                i === 2 && 'lg:col-span-6 lg:col-start-3 lg:-mt-10',
-              )}
-              data-reveal
-            >
-              <figure className="crop crop--inset relative bg-paper-2 p-7 sm:p-10" style={{ ['--cl' as string]: '14px', ['--cg' as string]: '-1px' }}>
-                <span aria-hidden="true" className="ital absolute -top-10 left-4 text-[9rem] leading-none text-ink">
-                  “
-                </span>
-                <blockquote className="t-h4 relative text-[clamp(1.45rem,1rem+1.4vw,2.35rem)] leading-[1.12] font-[600] tracking-[-0.02em]">
-                  {t(tm.quote, locale)}
-                </blockquote>
-                <figcaption className="mt-8 flex flex-wrap items-end justify-between gap-4 border-t border-[var(--rule)] pt-5">
-                  <span>
-                    <span className="block font-semibold">{tm.author}</span>
-                    <span className="label muted">
-                      {t(tm.role, locale)}, {tm.brand}
+            <li key={tm.author} data-reveal-item className={cn(i === 1 && 'lg:mt-12')}>
+              <figure className={cn('card relative flex h-full flex-col p-7 sm:p-9', i === 1 && 'theme-dark !bg-deep shadow-lift')}>
+                <svg aria-hidden="true" viewBox="0 0 32 24" className={cn('h-7 w-9', i === 1 ? 'text-lilac' : 'text-violet')} fill="currentColor">
+                  <path d="M0 24V14C0 6 4.5 1.2 12 0l1.5 3.4C9 5 7 8 7 12h6v12zm18 0V14C18 6 22.5 1.2 30 0l1.5 3.4C27 5 25 8 25 12h6v12z" />
+                </svg>
+                <blockquote className="mt-6 text-[clamp(1.15rem,1rem+0.55vw,1.45rem)] leading-[1.45] font-medium tracking-[-0.015em]">{t(tm.quote, locale)}</blockquote>
+                <figcaption className={cn('mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-6', i === 1 ? 'border-white/10' : 'border-line')}>
+                  <span className="flex items-center gap-3">
+                    <span aria-hidden="true" className="grid h-11 w-11 place-items-center rounded-full bg-[linear-gradient(135deg,#6b3cf6,#a78bfa)] text-sm font-semibold text-white">
+                      {initials(tm.author)}
+                    </span>
+                    <span>
+                      <span className="block font-semibold">{tm.author}</span>
+                      <span className={cn('block text-sm', i === 1 ? 'text-white/65' : 'text-muted')}>
+                        {t(tm.role, locale)}, {tm.brand}
+                      </span>
                     </span>
                   </span>
-                  <span className="chip chip--acid">{t(tm.result, locale)}</span>
+                  <span className={cn('chip', i === 1 ? '!bg-violet !text-white' : '!bg-surface !text-violet')}>{t(tm.result, locale)}</span>
                 </figcaption>
               </figure>
             </li>
           ))}
         </ul>
-        <Note n="11">{dict.strategy.notes.clients}</Note>
       </div>
     </section>
   )

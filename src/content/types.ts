@@ -61,8 +61,16 @@ export type ArtSpec = {
 }
 
 export type Media =
-  | { type: 'art'; art: ArtSpec; alt: L; caption?: L }
-  | { type: 'image'; src: string; width: number; height: number; alt: L; caption?: L }
+  | {
+      type: 'image'
+      src: string
+      width: number
+      height: number
+      alt: L
+      caption?: L
+      /** Ricetta del visual segnaposto (usata solo per rigenerare l'immagine in sviluppo) */
+      art?: ArtSpec
+    }
   | { type: 'video'; src: string; poster?: string; alt: L; caption?: L }
 
 /* ------------------------------------------------------------------ */

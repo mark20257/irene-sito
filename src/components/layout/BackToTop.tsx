@@ -12,7 +12,7 @@ export function BackToTop({ label }: { label: string }) {
         scrollTo(0)
         document.getElementById('main')?.focus({ preventScroll: true })
       }}
-      className="label group inline-flex min-h-11 items-center gap-2"
+      className="group inline-flex min-h-11 items-center gap-2 hover:text-white"
     >
       {label}
       <ArrowUpRight size={12} className="-rotate-45 transition-transform duration-500 ease-out-expo group-hover:-translate-y-1" />

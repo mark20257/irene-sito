@@ -1,10 +1,6 @@
 # Font per le immagini Open Graph
 
-Istanze statiche (TTF) usate solo da `next/og` per generare le immagini di anteprima
-(i font del sito sono caricati e ottimizzati da `next/font/google`).
+Istanze statiche (TTF) di **Geist** (Regular e SemiBold), usate solo da `next/og` per generare
+le immagini di anteprima. I font del sito sono caricati e ottimizzati da `next/font/google`.
 
-- Bricolage Grotesque (Condensed ExtraBold) — SIL Open Font License 1.1
-- Instrument Serif (Italic) — SIL Open Font License 1.1
-- Geist Mono (Regular) — SIL Open Font License 1.1
-
-Licenza: https://openfontlicense.org
+Licenza: SIL Open Font License 1.1 — https://openfontlicense.org

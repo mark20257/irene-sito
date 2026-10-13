@@ -1,0 +1,281 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+
+/* ════════════════════════════════════════════════════════════════════
+   Blob 3D — un "brand" liquido che cresce.
+   WebGL puro (nessuna libreria): un fragment shader in raymarching
+   disegna una sfera deformata con riflessi viola/lilla iridescenti.
+   - segue il mouse (rotazione) e cresce con lo scroll
+   - si mette in pausa quando è fuori schermo o la scheda è nascosta
+   - risoluzione adattiva (leggero anche su mobile): se i fotogrammi sono
+     lenti abbassa la risoluzione, se restano lenti si ferma su un fotogramma
+   - con rendering software (niente GPU) non parte: resta la sfera in CSS
+   - movimento ridotto: un solo fotogramma statico
+   - senza WebGL resta la sfera in CSS sotto
+   ════════════════════════════════════════════════════════════════════ */
+
+const VERT = `
+attribute vec2 a;
+void main() { gl_Position = vec4(a, 0.0, 1.0); }
+`
+
+const FRAG = `
+precision highp float;
+uniform vec2 uRes;
+uniform float uTime;
+uniform vec2 uMouse;
+uniform float uGrow;
+
+mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+
+float sdf(vec3 p) {
+  p.xz *= rot(uTime * 0.16 + uMouse.x * 0.7);
+  p.yz *= rot(uTime * 0.11 - uMouse.y * 0.55);
+  float t = uTime * 0.55;
+  float d = length(p) - (1.0 + uGrow * 0.12);
+  d += 0.11 * sin(2.9 * p.x + t) * sin(2.5 * p.y + t * 1.3) * sin(2.7 * p.z - t * 0.8);
+  d += 0.035 * sin(6.5 * p.x - t * 1.6) * sin(6.1 * p.y + t) * sin(6.7 * p.z + t * 1.2);
+  return d * 0.72;
+}
+
+vec3 calcNormal(vec3 p) {
+  vec2 e = vec2(0.002, 0.0);
+  return normalize(vec3(
+    sdf(p + e.xyy) - sdf(p - e.xyy),
+    sdf(p + e.yxy) - sdf(p - e.yxy),
+    sdf(p + e.yyx) - sdf(p - e.yyx)
+  ));
+}
+
+vec3 shade(vec3 p, vec3 rd) {
+  vec3 n = calcNormal(p);
+  vec3 v = -rd;
+  vec3 l = normalize(vec3(-0.55, 0.75, 0.6));
+  vec3 l2 = normalize(vec3(0.75, -0.45, 0.45));
+  float diff = max(dot(n, l), 0.0);
+  float fres = pow(1.0 - max(dot(n, v), 0.0), 2.2);
+  vec3 deep = vec3(0.13, 0.05, 0.4);
+  vec3 violet = vec3(0.5, 0.31, 1.0);
+  vec3 lilac = vec3(0.86, 0.81, 1.0);
+  vec3 orchid = vec3(0.95, 0.72, 1.0);
+  vec3 indigo = vec3(0.36, 0.42, 1.0);
+  float band = 0.5 + 0.5 * sin(dot(n, vec3(2.1, 1.3, 0.9)) * 3.2 + uTime * 0.45);
+  vec3 col = mix(deep, violet, smoothstep(-0.05, 0.95, diff * 1.1 + n.y * 0.2));
+  col = mix(col, mix(indigo, orchid, band), fres * 0.55);
+  col = mix(col, lilac, pow(fres, 2.5) * 0.65);
+  col += lilac * smoothstep(0.55, 1.0, n.y) * 0.12;
+  vec3 h = normalize(l + v);
+  col += vec3(1.0) * pow(max(dot(n, h), 0.0), 80.0) * 0.95;
+  col += vec3(1.0) * pow(max(dot(n, normalize(l2 + v)), 0.0), 30.0) * 0.18;
+  col += orchid * pow(max(dot(n, l2), 0.0), 3.0) * 0.25;
+  return col;
+}
+
+void main() {
+  float m = min(uRes.x, uRes.y);
+  vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / m;
+  vec3 ro = vec3(0.0, 0.0, 3.7);
+  vec3 rd = normalize(vec3(uv, -1.55));
+  float t = 0.0;
+  float minD = 1e3;
+  float minT = 0.0;
+  bool hit = false;
+  for (int i = 0; i < 64; i++) {
+    float d = sdf(ro + rd * t);
+    if (d < minD) { minD = d; minT = t; }
+    if (d < 0.0015) { hit = true; break; }
+    t += d;
+    if (t > 6.0) break;
+  }
+  float px = 1.6 * minT / (m * 1.55);
+  float alpha = hit ? 1.0 : 1.0 - smoothstep(0.0, px, minD);
+  if (alpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
+  vec3 col = shade(ro + rd * (hit ? t : minT), rd);
+  gl_FragColor = vec4(col * alpha, alpha);
+}
+`
+
+function compile(gl: WebGLRenderingContext, type: number, src: string) {
+  const s = gl.createShader(type)
+  if (!s) return null
+  gl.shaderSource(s, src)
+  gl.compileShader(s)
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    if (process.env.NODE_ENV === 'development') console.warn('[Blob3D] shader:', gl.getShaderInfoLog(s))
+    gl.deleteShader(s)
+    return null
+  }
+  return s
+}
+
+export function Blob3D({ className, grow = true }: { className?: string; grow?: boolean }) {
+  const wrap = useRef<HTMLDivElement>(null)
+  const canvas = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const el = canvas.current
+    const box = wrap.current
+    if (!el || !box) return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // failIfMajorPerformanceCaveat: niente contesto se il browser non ha una GPU vera
+    const gl = el.getContext('webgl', {
+      alpha: true,
+      antialias: false,
+      premultipliedAlpha: true,
+      powerPreference: 'high-performance',
+      failIfMajorPerformanceCaveat: true,
+    })
+    if (!gl) return
+    const info = gl.getExtension('WEBGL_debug_renderer_info')
+    const renderer = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : ''
+    if (/swiftshader|llvmpipe|software|basic render/i.test(renderer)) return
+
+    const vs = compile(gl, gl.VERTEX_SHADER, VERT)
+    const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG)
+    if (!vs || !fs) return
+    const prog = gl.createProgram()
+    if (!prog) return
+    gl.attachShader(prog, vs)
+    gl.attachShader(prog, fs)
+    gl.linkProgram(prog)
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return
+    gl.useProgram(prog)
+
+    const buf = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
+    const loc = gl.getAttribLocation(prog, 'a')
+    gl.enableVertexAttribArray(loc)
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
+
+    const uRes = gl.getUniformLocation(prog, 'uRes')
+    const uTime = gl.getUniformLocation(prog, 'uTime')
+    const uMouse = gl.getUniformLocation(prog, 'uMouse')
+    const uGrow = gl.getUniformLocation(prog, 'uGrow')
+
+    // risoluzione adattiva: massimo ~0,45 megapixel, meno se il dispositivo fatica
+    let budget = 450_000
+    const resize = () => {
+      const w = box.clientWidth
+      const h = box.clientHeight
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const scale = Math.min(dpr, Math.sqrt(budget / Math.max(1, w * h)))
+      el.width = Math.max(1, Math.round(w * scale))
+      el.height = Math.max(1, Math.round(h * scale))
+      gl.viewport(0, 0, el.width, el.height)
+      gl.uniform2f(uRes, el.width, el.height)
+    }
+    resize()
+    const ro = new ResizeObserver(resize)
+    ro.observe(box)
+
+    const mouse = { x: 0, y: 0, tx: 0, ty: 0 }
+    const onMove = (e: PointerEvent) => {
+      mouse.tx = (e.clientX / window.innerWidth) * 2 - 1
+      mouse.ty = (e.clientY / window.innerHeight) * 2 - 1
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+
+    let visible = true
+    const io = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting
+      if (visible) start()
+    })
+    io.observe(box)
+
+    let raf = 0
+    let running = false
+    let first = true
+    let frozen = reduce
+    const t0 = performance.now()
+
+    // controllo qualità: media dei tempi tra fotogrammi su finestre da 24
+    let last = 0
+    let sum = 0
+    let count = 0
+    const govern = (now: number) => {
+      if (last) {
+        sum += now - last
+        count++
+      }
+      last = now
+      if (count < 24) return
+      const avg = sum / count
+      sum = count = 0
+      if (avg < 34) return
+      if (budget > 120_000) {
+        budget = budget > 220_000 ? 220_000 : 120_000
+        resize()
+      } else {
+        frozen = true
+      }
+    }
+
+    const frame = (now: number) => {
+      govern(now)
+      mouse.x += (mouse.tx - mouse.x) * 0.05
+      mouse.y += (mouse.ty - mouse.y) * 0.05
+      const g = grow ? Math.min(1, window.scrollY / Math.max(1, window.innerHeight)) : 0
+      gl.uniform1f(uTime, reduce ? 4.0 : (now - t0) / 1000)
+      gl.uniform2f(uMouse, mouse.x, mouse.y)
+      gl.uniform1f(uGrow, g)
+      gl.drawArrays(gl.TRIANGLES, 0, 3)
+      if (first) {
+        first = false
+        box.dataset.ready = 'true'
+      }
+      if (frozen || !visible || document.hidden) {
+        running = false
+        last = 0
+        return
+      }
+      raf = requestAnimationFrame(frame)
+    }
+    let ready = false
+    function start() {
+      if (!ready || running || (frozen && !first)) return
+      running = true
+      raf = requestAnimationFrame(frame)
+    }
+    const onVisibility = () => !document.hidden && start()
+    document.addEventListener('visibilitychange', onVisibility)
+
+    // avvio a pagina caricata e thread libero, per non pesare sul primo caricamento
+    let idle = 0
+    const boot = () => {
+      const go = () => {
+        ready = true
+        start()
+      }
+      idle = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(go, { timeout: 1200 }) : window.setTimeout(go, 300)
+    }
+    if (document.readyState === 'complete') boot()
+    else window.addEventListener('load', boot, { once: true })
+
+    return () => {
+      window.removeEventListener('load', boot)
+      if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle)
+      window.clearTimeout(idle)
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+      io.disconnect()
+      window.removeEventListener('pointermove', onMove)
+      document.removeEventListener('visibilitychange', onVisibility)
+      // niente loseContext(): in sviluppo React rimonta il componente sullo stesso canvas
+      gl.deleteBuffer(buf)
+      gl.deleteProgram(prog)
+      gl.deleteShader(vs)
+      gl.deleteShader(fs)
+    }
+  }, [grow])
+
+  return (
+    <div ref={wrap} className={cn('group/blob', className ?? 'relative')} aria-hidden="true">
+      {/* sfera CSS: visibile subito e se WebGL non c'è */}
+      <div className="absolute inset-[14%] rounded-full bg-[radial-gradient(circle_at_34%_28%,#d9ccff_0%,#8b5cf6_32%,#5b2ee0_58%,#24105f_100%)] shadow-[0_40px_120px_-30px_rgb(107_60_246/0.7)] transition-opacity duration-700 group-data-[ready=true]/blob:opacity-0" />
+      <canvas ref={canvas} className="absolute inset-0 h-full w-full opacity-0 transition-opacity duration-700 group-data-[ready=true]/blob:opacity-100" />
+    </div>
+  )
+}

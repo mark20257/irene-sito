@@ -89,10 +89,10 @@ export function WorkClient({
   }, [view])
 
   return (
-    <div className="mt-[clamp(3rem,6vw,6rem)]">
-      <div className="mb-10 flex items-center justify-between gap-4 lg:mb-16">
-        <p className="label muted">{labels.label}</p>
-        <div role="group" aria-label={labels.label} className="flex rounded-full p-1 shadow-[inset_0_0_0_1px_var(--rule)]">
+    <div className={cn('mt-[clamp(2.5rem,5vw,4.5rem)]', view === 'grid' && 'pb-28 md:pb-36')}>
+      <div className="mb-8 flex items-center justify-between gap-4 lg:mb-12">
+        <p className="text-sm font-medium text-muted">{labels.label}</p>
+        <div role="group" aria-label={labels.label} className="flex rounded-full bg-surface p-1">
           {(['grid', 'index'] as View[]).map((v) => (
             <button
               key={v}
@@ -100,8 +100,8 @@ export function WorkClient({
               aria-pressed={view === v}
               onClick={() => setView(v)}
               className={cn(
-                'label min-h-11 rounded-full px-5 transition-colors duration-300',
-                view === v ? 'bg-ink text-paper' : 'hover:bg-paper-2',
+                'min-h-10 rounded-full px-5 text-[0.95rem] font-semibold transition-colors duration-300',
+                view === v ? 'bg-white text-violet shadow-soft' : 'text-ink-2 hover:text-ink',
               )}
             >
               {labels[v]}
@@ -116,7 +116,7 @@ export function WorkClient({
       <div
         ref={preview}
         aria-hidden="true"
-        className="pointer-events-none fixed top-0 left-0 z-30 hidden aspect-[4/5] w-[min(24vw,360px)] overflow-hidden opacity-0 lg:block"
+        className="pointer-events-none fixed top-0 left-0 z-30 hidden aspect-[4/5] w-[min(22vw,340px)] overflow-hidden rounded-[1.5rem] opacity-0 shadow-lift lg:block"
       >
         {view === 'index' &&
           previews.map((p, i) => (

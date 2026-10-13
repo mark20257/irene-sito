@@ -30,18 +30,18 @@ const content = {
 export function PrivacyView({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale)
   return (
-    <section data-theme="paper" className="theme-paper pt-[calc(var(--header-h)+clamp(2rem,6vw,5rem))] pb-[var(--section-y)]">
+    <section data-theme="light" className="theme-light pt-[calc(var(--header-h)+clamp(2rem,6vw,5rem))] pb-[var(--section-y)]">
       <div className="wrap grid-12 gap-y-10">
         <div className="col-span-4 lg:col-span-4">
           <h1 className="t-h2">{dict.privacy.title}</h1>
-          <p className="label muted mt-6">{dict.privacy.updated}</p>
+          <p className="mt-6 text-sm text-muted">{dict.privacy.updated}</p>
         </div>
         <div className="col-span-4 lg:col-span-7 lg:col-start-6">
-          <dl className="border-t border-[var(--rule)]">
+          <dl className="card px-6 sm:px-10">
             {content[locale].map(([title, body]) => (
-              <div key={title} className="grid gap-2 border-b border-[var(--rule)] py-6 sm:grid-cols-[14rem_1fr] sm:gap-8">
-                <dt className="label pt-1">{title}</dt>
-                <dd className="text-lg leading-relaxed">{body}</dd>
+              <div key={title} className="grid gap-2 border-b border-line py-6 last:border-b-0 sm:grid-cols-[13rem_1fr] sm:gap-8">
+                <dt className="pt-0.5 font-semibold">{title}</dt>
+                <dd className="text-[1.05rem] leading-relaxed text-ink-2">{body}</dd>
               </div>
             ))}
           </dl>

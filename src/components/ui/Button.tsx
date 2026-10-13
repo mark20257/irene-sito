@@ -5,7 +5,7 @@ import { ArrowDown, ArrowRight, ArrowUpRight, Chat } from './Icons'
 
 type Common = {
   children: string
-  variant?: 'ink' | 'acid' | 'paper' | 'ghost'
+  variant?: 'primary' | 'dark' | 'light' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
   icon?: 'arrow' | 'up' | 'down' | 'chat' | 'none'
   magnetic?: boolean
@@ -24,10 +24,10 @@ const icons: Record<NonNullable<Common['icon']>, ReactNode> = {
   none: null,
 }
 
-/** Bottone/pillola con testo che rotola e riempimento acido. Opzionalmente magnetico. */
+/** Bottone a pillola: testo che "rotola" all'hover, icona in un cerchio, opzionalmente magnetico. */
 export function Button(props: AsLink | AsButton) {
-  const { children, variant = 'ink', size = 'md', icon = 'arrow', magnetic = true, className } = props
-  const cls = cn('btn', variant !== 'ink' && `btn--${variant}`, size !== 'md' && `btn--${size}`, className)
+  const { children, variant = 'primary', size = 'md', icon = 'arrow', magnetic = true, className } = props
+  const cls = cn('btn', `btn--${variant}`, size !== 'md' && `btn--${size}`, icon === 'none' && 'pr-6', className)
 
   const inner = (
     <>
@@ -51,7 +51,7 @@ export function Button(props: AsLink | AsButton) {
     )
 
   return magnetic ? (
-    <span data-magnetic="0.3" className="inline-block">
+    <span data-magnetic="0.25" className="inline-block">
       {el}
     </span>
   ) : (

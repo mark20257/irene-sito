@@ -12,13 +12,15 @@ const subscribe = (onChange: () => void) => {
 
 /**
  * true se l'utente preferisce meno movimento.
- * Sul server (e senza JS) vale true: si parte sempre dalla versione statica e accessibile,
- * le animazioni si attivano solo nel browser.
+ * Sul server vale false (il caso più comune): così, per quasi tutti, l'idratazione non
+ * ridisegna nulla. Il layout statico o "pinnato" lo decide comunque il CSS (variante `pinned:`),
+ * quindi chi preferisce meno movimento (o non ha JS) vede da subito la versione statica;
+ * da qui dipendono solo attributi e animazioni.
  */
 export function useReducedMotion() {
   return useSyncExternalStore(
     subscribe,
     () => window.matchMedia(QUERY).matches,
-    () => true,
+    () => false,
   )
 }

@@ -8,12 +8,12 @@ export function CopyEmail({ email, copy, copied }: { email: string; copy: string
   const [done, setDone] = useState(false)
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <a href={`mailto:${email}`} className="t-h4 link-u break-all">
+      <a href={`mailto:${email}`} className="link-u text-lg font-semibold break-all">
         {email}
       </a>
       <button
         type="button"
-        className="label inline-flex min-h-11 items-center gap-2 rounded-full px-3 shadow-[inset_0_0_0_1px_var(--rule)] transition-colors hover:bg-paper hover:text-ink"
+        className="inline-flex min-h-10 items-center gap-2 rounded-full bg-white/10 px-3.5 text-sm font-medium transition-colors hover:bg-white/20"
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(email)

@@ -1,5 +1,6 @@
-import type { CaseStudy, Media, ArtSpec, L } from '../types'
+import type { CaseStudy } from '../types'
 import { brands } from './brands'
+import { art, place, type Pending } from './placeholders'
 
 /**
  * ─────────────────────────────────────────────────────────────────────
@@ -7,15 +8,19 @@ import { brands } from './brands'
  *  ⚠️  Progetti, numeri e testimonianze qui sotto sono D'ESEMPIO.
  *      Sostituiscili con i tuoi prima di pubblicare.
  *
- *  Per usare foto vere al posto dei visual generati:
- *    cover: { type: 'image', src: '/images/lavori/ombra-cover.jpg', width: 1600, height: 2000, alt: { it: '…', en: '…' } }
- *  (metti i file in /public/images/lavori — Next li converte in AVIF/WebP)
+ *  Immagini: /public/images/lavori/<slug>/cover.webp, creativita-1.webp, gallery-1.webp…
+ *  Per usare le foto vere, sostituisci i file mantenendo nome e proporzioni
+ *  (Next li serve ottimizzati in AVIF/WebP, in lazy loading).
  * ─────────────────────────────────────────────────────────────────────
  */
 
-const art = (spec: ArtSpec, alt: L, caption?: L): Media => ({ type: 'art', art: spec, alt, caption })
+type CaseDraft = Omit<CaseStudy, 'cover' | 'creative' | 'gallery'> & {
+  cover: Pending
+  creative: Omit<CaseStudy['creative'], 'media'> & { media: Pending[] }
+  gallery: Pending[]
+}
 
-export const cases: CaseStudy[] = [
+const drafts: CaseDraft[] = [
   /* ------------------------------------------------------------ 01 */
   {
     slug: 'atelier-ombra',
@@ -564,6 +569,14 @@ export const cases: CaseStudy[] = [
     },
   },
 ]
+
+/** Ogni visual diventa un'immagine in /public/images/lavori/<slug>/… */
+export const cases: CaseStudy[] = drafts.map((d) => ({
+  ...d,
+  cover: place(d.cover, `lavori/${d.slug}/cover`),
+  creative: { ...d.creative, media: d.creative.media.map((m, i) => place(m, `lavori/${d.slug}/creativita-${i + 1}`)) },
+  gallery: d.gallery.map((m, i) => place(m, `lavori/${d.slug}/gallery-${i + 1}`)),
+}))
 
 export const getCase = (slug: string) => cases.find((c) => c.slug === slug)
 

@@ -1,109 +1,102 @@
 import type { CSSProperties } from 'react'
-import { getDictionary, paths, type Locale } from '@/content'
+import { getDictionary, paths, t, type Locale } from '@/content'
+import { cases } from '@/content/data/cases'
+import { metrics } from '@/content/data/proof'
+import { site } from '@/content/site'
+import { Blob3D } from '@/components/motion/Blob3D'
 import { Button } from '@/components/ui/Button'
-import { Note } from '@/components/ui/Note'
-import { SmartLink } from '@/components/ui/SmartLink'
-import { ArrowDown, RegMark } from '@/components/ui/Icons'
+import { formatNumber, cn } from '@/lib/utils'
 import { HeroMotion } from './HeroMotion'
 
 const d = (s: number) => ({ '--d': `${s}s` }) as CSSProperties
 
-/** Parola con la linea di crescita che si disegna sotto */
+/** "Faccio crescere brand." con la parola chiave in gradiente */
 function Claim({ text, grow }: { text: string; grow: string }) {
   const [before, after] = text.split(grow)
   if (after === undefined) return <>{text}</>
   return (
     <>
       {before}
-      <span className="relative inline-block whitespace-nowrap">
-        {grow}
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 200 40"
-          preserveAspectRatio="none"
-          className="pointer-events-none absolute -bottom-[0.22em] left-0 h-[0.42em] w-full overflow-visible"
-        >
-          <polyline
-            className="draw-line"
-            style={d(0.55)}
-            pathLength={1}
-            points="0,34 34,30 62,33 96,22 128,25 160,10 200,3"
-            fill="none"
-            stroke="var(--color-acid)"
-            strokeWidth="9"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-          <circle cx="200" cy="3" r="5" fill="var(--color-ink)" className="fade-in" style={d(1.6)} />
-        </svg>
-      </span>
+      <span className="grad">{grow}</span>
       {after}
     </>
   )
 }
 
+const chipPos = [
+  'top-[4%] -left-[2%] sm:left-[-6%]',
+  'top-[42%] -right-[1%] sm:right-[-8%] lg:right-[-10%]',
+  'bottom-[2%] left-[10%] hidden sm:block',
+]
+
 export function Hero({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale)
   const h = dict.hero
-  const notes = dict.strategy.notes
   const words = h.rotating
+  const chips = [cases[0], cases[2], cases[3]]
+  const trust = metrics.slice(0, 3)
 
   return (
-    <section
-      id={dict.sections.hero.id}
-      data-theme="paper"
-      data-hero
-      aria-labelledby="hero-title"
-      className="theme-paper relative overflow-hidden pt-[var(--header-h)]"
-    >
+    <section id={dict.sections.hero.id} data-theme="light" data-hero aria-labelledby="hero-title" className="theme-light relative overflow-hidden pt-[var(--header-h)]">
       <HeroMotion />
-      <div className="wrap relative flex min-h-[calc(100svh-var(--header-h))] flex-col pb-6 lg:pb-8">
-        {/* ── riga meta ─────────────────────────────────────── */}
-        <div className="flex items-start justify-between gap-6 pt-5 lg:pt-8">
-          <p className="label rise-soft flex items-center gap-3" style={d(0.1)}>
-            <RegMark size={16} />
-            <span>(01) — {h.eyebrow}</span>
-          </p>
-          <p className="label rise-soft hidden max-w-[22ch] text-right sm:block" style={d(0.2)}>
-            {h.location}
-          </p>
-        </div>
+      <div aria-hidden="true" className="glow -top-48 right-[-10%] h-[44rem] w-[44rem] opacity-60" />
+      <div aria-hidden="true" className="glow bottom-[-20rem] -left-40 h-[30rem] w-[30rem] opacity-30" />
 
-        {/* ── nome ──────────────────────────────────────────── */}
-        <div className="relative mt-auto pt-10 lg:pt-6">
-          <h1
-            id="hero-title"
-            className="t-display font-[800] uppercase"
-            style={{ fontSize: 'min(47vw, 35svh)', lineHeight: 0.8, letterSpacing: '-0.012em', fontStretch: '75%' }}
-          >
-            <span data-hero-line="left" className="line-mask">
-              <span className="settle">Irene</span>
-            </span>
-            <span data-hero-line="right" className="line-mask lg:text-right">
-              <span className="settle" style={d(0.06)}>
-                Chies
+      <div className="wrap relative">
+        <div className="grid-12 min-h-[calc(100svh-var(--header-h))] content-center gap-y-6 py-6 lg:gap-y-10 lg:py-10">
+          {/* ── oggetto 3D ─────────────────────────────── */}
+          <div className="relative col-span-4 lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:self-center">
+            <div className="relative mx-auto aspect-square w-[64vw] max-w-[36rem] sm:w-[52vw] lg:w-full" data-hero-blob>
+              <Blob3D className="absolute -inset-[6%]" />
+              {chips.map((c, i) => (
+                <div
+                  key={c.slug}
+                  data-hero-chip
+                  className={cn('fade-in absolute', chipPos[i])}
+                  style={{ ...d(0.5 + i * 0.12) }}
+                >
+                  <div className="card float px-3.5 py-2.5 sm:px-4 sm:py-3" style={{ ['--fd' as string]: `${i * -1.6}s` }}>
+                    <p className="t-num text-[1.35rem] text-violet sm:text-[1.7rem]">{c.highlight.value}</p>
+                    <p className="text-[0.75rem] leading-tight font-medium text-ink sm:text-[0.8rem]">{t(c.highlight.label, locale)}</p>
+                    <p className="text-[0.7rem] text-muted">{c.client}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── testo ─────────────────────────────────── */}
+          <div className="relative z-10 col-span-4 lg:col-span-7 lg:row-start-1">
+            <p className="rise-soft inline-flex items-center gap-2.5 rounded-full bg-white py-1.5 pr-4 pl-2 text-[0.85rem] font-medium shadow-soft" style={d(0)}>
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet opacity-60 motion-reduce:animate-none" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-violet" />
               </span>
-            </span>
-            <span className="sr-only"> — {h.roles.join(', ')}</span>
-          </h1>
+              {site.availability[locale]}
+            </p>
 
-          {/* ruoli, in alto a destra (desktop) */}
-          <ul
-            aria-hidden="true"
-            className="label absolute top-[calc(var(--header-h)*0.1)] right-0 hidden text-right leading-[1.6] lg:block"
-          >
-            {h.roles.map((r, i) => (
-              <li key={r} className="rise-soft" style={d(0.25 + i * 0.07)}>
-                <span className="muted">0{i + 1}</span> {r}
-              </li>
-            ))}
-          </ul>
+            <h1 id="hero-title" className="t-name mt-6 text-[clamp(4.2rem,19vw,9.5rem)] lg:text-[min(9.5rem,10.5vw)]">
+              <span data-hero-line className="line-mask">
+                <span className="rise" style={d(0.05)}>
+                  Irene
+                </span>
+              </span>
+              <span data-hero-line className="line-mask">
+                <span className="rise" style={d(0.12)}>
+                  Chies
+                </span>
+              </span>
+              <span className="sr-only"> — {h.roles.join(', ')}</span>
+            </h1>
 
-          {/* parole che ruotano */}
-          <div className="mt-5 flex items-center gap-4 lg:absolute lg:bottom-[0.6vw] lg:left-0 lg:mt-0" data-hero-rotator>
-            <div className="rise-soft flex items-end gap-3 lg:block" style={d(0.35)}>
-              <p className="label mb-1 lg:mb-2">{h.rotatingLabel}</p>
-              <p className="t-display bg-acid px-[0.18em] pt-[0.06em] pb-[0.02em] text-[clamp(2.4rem,6.4vw,7rem)] leading-[0.95] uppercase shadow-[0.06em_0.06em_0_var(--color-ink)]">
+            <p className="rise-soft mt-6 text-[clamp(1.6rem,1.1rem+2vw,2.9rem)] leading-[1.1] font-semibold tracking-[-0.04em]" style={d(0.2)}>
+              <Claim text={h.claim} grow={h.growWord} />
+              <span className="block font-light text-ink-2">{h.claimAccent}</span>
+            </p>
+
+            <div className="rise-soft mt-5 flex flex-wrap items-center gap-3" style={d(0.28)}>
+              <span className="text-[0.95rem] text-muted">{h.rotatingLabel}</span>
+              <span className="inline-flex items-center rounded-full bg-violet px-4 py-1.5 text-[1.05rem] font-semibold text-white shadow-glow">
                 <span className="sr-only">{words.join(', ')}</span>
                 <span className="rotator" aria-hidden="true">
                   <span className="rotator__sizer">
@@ -117,59 +110,38 @@ export function Hero({ locale }: { locale: Locale }) {
                     ))}
                   </span>
                 </span>
-              </p>
+              </span>
+              <span className="hidden text-[0.95rem] text-muted sm:inline">· {h.roles.join(' · ')}</span>
             </div>
-            <Note n="02" className="relative max-w-[24ch] self-end lg:max-w-[28ch]">
-              {notes.heroRoles}
-            </Note>
-          </div>
 
-          <Note n="01" className="absolute top-2 left-[42%] max-w-[26ch] lg:top-[4%] lg:left-[46%]">
-            {notes.heroName}
-          </Note>
-        </div>
-
-        {/* ── claim + CTA ───────────────────────────────────── */}
-        <div className="grid-12 mt-8 items-end gap-y-6 border-t border-[var(--rule)] pt-6 lg:mt-10 lg:pt-8">
-          <div className="order-1 col-span-4 lg:order-none lg:col-span-5">
-            <p className="t-h3 text-[clamp(2.1rem,4.2vw,4.4rem)]">
-              <span className="line-mask">
-                <span className="rise" style={d(0.15)}>
-                  <Claim text={h.claim} grow={h.growWord} />
-                </span>
-              </span>
-              <span className="line-mask">
-                <span className="rise ital" style={d(0.22)}>
-                  {h.claimAccent}
-                </span>
-              </span>
+            <p className="t-lead rise-soft mt-6 max-w-[44ch] text-ink-2" style={d(0.34)}>
+              {h.sub}
             </p>
-            <Note n="04" className="relative mt-3">
-              {notes.font}
-            </Note>
-          </div>
 
-          <p className="t-lead rise-soft order-3 col-span-4 max-w-[38ch] lg:order-none text-[clamp(1.05rem,0.95rem+0.4vw,1.3rem)] text-ink-2 lg:col-span-4 lg:col-start-6" style={d(0.3)}>
-            {h.sub}
-          </p>
-
-          <div className="rise-soft order-2 col-span-4 flex flex-col items-start gap-4 lg:order-none lg:col-span-3 lg:items-end" style={d(0.4)}>
-            <Button href={paths.section('contact', locale)} size="lg" className="w-full justify-between sm:w-auto">
-              {h.ctaPrimary}
-            </Button>
-            <SmartLink href={paths.section('work', locale)} className="label link-u inline-flex items-center gap-2">
-              {h.ctaSecondary}
-              <ArrowDown size={12} />
-            </SmartLink>
-            <Note n="03" className="relative">
-              {notes.heroCta}
-            </Note>
+            <div className="rise-soft mt-8 flex flex-wrap items-center gap-3" style={d(0.42)}>
+              <Button href={paths.section('contact', locale)} size="lg">
+                {h.ctaPrimary}
+              </Button>
+              <Button href={paths.section('work', locale)} variant="ghost" size="lg" icon="down" magnetic={false}>
+                {h.ctaSecondary}
+              </Button>
+            </div>
           </div>
         </div>
 
-        <p className="label fade-in muted mt-6 flex items-center gap-2 lg:hidden" style={d(0.6)}>
-          {h.location}
-        </p>
+        {/* ── numeri di fiducia ─────────────────────────── */}
+        <dl className="fade-in grid grid-cols-3 gap-4 border-t border-line py-6 lg:py-8" style={d(0.55)}>
+          {trust.map((m, i) => (
+            <div key={i} className="flex flex-col-reverse gap-1">
+              <dt className="text-[0.8rem] leading-snug text-muted sm:text-[0.9rem]">{t(m.label, locale)}</dt>
+              <dd className="t-num text-[clamp(1.6rem,1rem+2vw,2.6rem)]">
+                {m.prefix}
+                {formatNumber(m.value, locale, m.decimals ?? 0)}
+                {m.suffix}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   )

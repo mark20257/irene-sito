@@ -3,34 +3,36 @@ import type { Face, Motif, Tone } from '@/content/types'
 
 /* Palette fissa: i visual segnaposto parlano la stessa lingua del sito. */
 export const C = {
-  paper: '#F4F1EA',
-  paper2: '#E9E4D8',
-  paper3: '#DCD5C5',
-  ink: '#111111',
-  ink2: '#2A2927',
-  acid: '#D4FF3A',
-  acid2: '#BCE52C',
-  mid: '#9E978A',
+  paper: '#F7F5FF',
+  paper2: '#ECE6FF',
+  paper3: '#DCD2FD',
+  ink: '#160B33',
+  ink2: '#2B1D5C',
+  acid: '#A78BFA', // lilla
+  acid2: '#9373F7',
+  violet: '#6B3CF6',
+  white: '#FFFFFF',
+  mid: '#9A90BC',
 }
 
 export type Palette = { bg: string; fg: string; accent: string; soft: string; on: string }
 
 export const palette = (tone: Tone): Palette =>
   ({
-    paper: { bg: C.paper2, fg: C.ink, accent: C.acid, soft: C.paper3, on: C.ink },
+    paper: { bg: C.paper2, fg: C.ink, accent: C.violet, soft: C.paper3, on: C.ink },
     ink: { bg: C.ink, fg: C.paper, accent: C.acid, soft: C.ink2, on: C.ink },
-    acid: { bg: C.acid, fg: C.ink, accent: C.paper, soft: C.acid2, on: C.ink },
+    acid: { bg: C.violet, fg: C.white, accent: C.paper, soft: '#7B52F7', on: C.ink },
   })[tone]
 
 export const font = {
-  display: { fontFamily: 'var(--font-display)', fontWeight: 800, fontStretch: '75%', letterSpacing: '-0.01em' } as CSSProperties,
-  serif: { fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 } as CSSProperties,
+  display: { fontFamily: 'var(--font-sans)', fontWeight: 700, letterSpacing: '-0.04em' } as CSSProperties,
+  serif: { fontFamily: 'var(--font-sans)', fontWeight: 300, letterSpacing: '-0.03em' } as CSSProperties,
   mono: { fontFamily: 'var(--font-mono)', fontWeight: 400, letterSpacing: '0.02em' } as CSSProperties,
-  sans: { fontFamily: 'var(--font-sans)', fontWeight: 600, letterSpacing: '-0.01em' } as CSSProperties,
+  sans: { fontFamily: 'var(--font-sans)', fontWeight: 600, letterSpacing: '-0.02em' } as CSSProperties,
 }
 
 /** Larghezza media dei glifi (in em) per stimare la dimensione del testo nei visual */
-const widthFactor: Record<Face, number> = { display: 0.5, serif: 0.42, mono: 0.6 }
+const widthFactor: Record<Face, number> = { display: 0.72, serif: 0.62, mono: 0.62 }
 
 export const fitSize = (text: string, face: Face, maxWidth: number, maxSize: number) =>
   Math.min(maxSize, maxWidth / Math.max(1, text.length * widthFactor[face]))

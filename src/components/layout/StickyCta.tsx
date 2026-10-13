@@ -8,7 +8,7 @@ import { ArrowUpRight, Chat } from '@/components/ui/Icons'
 
 /**
  * Barra CTA fissa solo su mobile (il pubblico arriva da Instagram, col pollice).
- * Compare dopo l'hero, sparisce quando sei già nei contatti o nel footer.
+ * Compare dopo l'hero, sparisce dove c'è già un'azione (feed, contatti, footer).
  */
 export function StickyCta({ href, label, whatsapp, whatsappLabel }: { href: string; label: string; whatsapp: string; whatsappLabel: string }) {
   const pathname = usePathname()
@@ -45,20 +45,14 @@ export function StickyCta({ href, label, whatsapp, whatsappLabel }: { href: stri
       aria-hidden={!show}
       inert={!show}
     >
-      <div className="flex gap-2 rounded-full bg-ink p-1.5 text-paper shadow-[0_10px_30px_-10px_rgb(17_17_17/0.5)]">
-        <SmartLink href={href} className="flex min-h-12 flex-1 items-center justify-between rounded-full bg-acid pr-2 pl-5 font-semibold text-ink">
+      <div className="flex gap-2 rounded-full bg-deep p-1.5 text-white shadow-[0_16px_40px_-12px_rgb(21_10_46/0.6)]">
+        <SmartLink href={href} className="flex min-h-12 flex-1 items-center justify-between rounded-full bg-violet pr-2 pl-5 font-semibold">
           {label}
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-ink text-acid">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-white/20">
             <ArrowUpRight size={14} />
           </span>
         </SmartLink>
-        <a
-          href={whatsapp}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={whatsappLabel}
-          className="grid min-h-12 w-12 place-items-center rounded-full shadow-[inset_0_0_0_1px_rgb(244_241_234/0.3)]"
-        >
+        <a href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label={whatsappLabel} className="grid min-h-12 w-12 place-items-center rounded-full bg-white/10">
           <Chat size={18} />
         </a>
       </div>

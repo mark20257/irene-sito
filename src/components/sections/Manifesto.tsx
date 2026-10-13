@@ -1,5 +1,4 @@
 import { getDictionary, type Locale } from '@/content'
-import { Note } from '@/components/ui/Note'
 import { Rich } from '@/components/ui/Rich'
 
 /** Manifesto: il testo si "accende" parola per parola mentre scorri. */
@@ -7,22 +6,20 @@ export function Manifesto({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale)
   const m = dict.manifesto
   return (
-    <section id={dict.sections.manifesto.id} data-theme="paper" aria-labelledby="manifesto-title" className="theme-paper section">
-      <div className="wrap grid-12 gap-y-10">
-        <div className="label col-span-4 flex items-center gap-3 lg:col-span-2 lg:flex-col lg:items-start" data-reveal data-reveal-y="12">
-          <span>(02)</span>
-          <span id="manifesto-title">{dict.sections.manifesto.label}</span>
-        </div>
-
-        <div className="col-span-4 lg:col-span-10">
-          <p className="t-big max-w-[24ch]" data-scrub-words>
+    <section id={dict.sections.manifesto.id} data-theme="light" aria-labelledby="manifesto-title" className="theme-light section">
+      <div className="wrap">
+        <div className="mx-auto max-w-5xl">
+          <p id="manifesto-title" className="eyebrow" data-reveal data-reveal-y="12">
+            {dict.sections.manifesto.label}
+          </p>
+          <p className="t-big mt-8" data-scrub-words>
             <Rich text={m.text} words />
           </p>
-          <p className="mt-10 flex items-center gap-4" data-reveal>
-            <span className="h-px w-16 bg-current" aria-hidden="true" />
-            <span className="ital text-4xl">{m.signature}</span>
+          <p className="mt-10 flex items-center gap-3" data-reveal>
+            <span aria-hidden="true" className="h-9 w-9 rounded-full bg-[radial-gradient(circle_at_34%_30%,#e4dbff_0%,#8b5cf6_40%,#4c1fd1_100%)]" />
+            <span className="text-lg font-semibold">{m.signature}</span>
+            <span className="text-muted">— Social, Ads & Design</span>
           </p>
-          <Note n="05">{dict.strategy.notes.manifesto}</Note>
         </div>
       </div>
     </section>

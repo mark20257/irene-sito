@@ -2,8 +2,8 @@ import { Fragment, type ReactNode } from 'react'
 
 /**
  * Mini-markup dei testi:
- *   *parola*   → corsivo editoriale
- *   ==parola== → evidenziatore acido
+ *   *parola*   → tono "voce" (più leggero, viola)
+ *   ==parola== → gradiente viola
  * Con `words`, ogni parola è avvolta in uno <span class="w"> (per le animazioni a scrub).
  */
 type Props = {

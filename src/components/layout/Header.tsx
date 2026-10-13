@@ -2,13 +2,12 @@
 
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import type { Locale } from '@/content'
 import { gsap, prefersReducedMotion } from '@/lib/gsap'
 import { cn } from '@/lib/utils'
 import { useMotion } from '@/components/motion/MotionProvider'
-import { StrategyToggle } from '@/components/motion/StrategyMode'
 import { SmartLink } from '@/components/ui/SmartLink'
-import { RegMark } from '@/components/ui/Icons'
 import { Button } from '@/components/ui/Button'
 import { LangSwitch } from './LangSwitch'
 import { LocalTime } from './LocalTime'
@@ -17,15 +16,11 @@ export type HeaderProps = {
   locale: Locale
   homeHref: string
   contactHref: string
-  links: { href: string; label: string }[]
-  availability: string
+  links: { href: string; label: string; id: string }[]
   labels: {
     cta: string
     menu: string
     close: string
-    strategy: string
-    strategyOn: string
-    strategyKey: string
     home: string
     menuOpen: string
     menuClose: string
@@ -37,37 +32,69 @@ export type HeaderProps = {
   contacts: { email: string; whatsapp: string; instagram: string; linkedin: string; city: string; timeZone: string }
 }
 
-type Theme = 'paper' | 'ink' | 'acid'
+type Theme = 'light' | 'dark' | 'violet'
+
+/** Il marchio: una piccola sfera viola + il nome */
+export function Logo({ className }: { className?: string }) {
+  return (
+    <span className={cn('flex items-center gap-2.5', className)}>
+      <span
+        aria-hidden="true"
+        className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_34%_30%,#e4dbff_0%,#8b5cf6_40%,#4c1fd1_100%)] shadow-[0_6px_18px_-4px_rgb(107_60_246/0.6)] transition-transform duration-700 ease-out-expo group-hover:scale-110 group-hover:rotate-12"
+      />
+      <span className="text-[1.15rem] font-semibold tracking-[-0.03em] whitespace-nowrap">Irene Chies</span>
+    </span>
+  )
+}
 
 export function Header(props: HeaderProps) {
-  const { locale, homeHref, contactHref, links, availability, labels, contacts } = props
+  const { locale, homeHref, contactHref, links, labels, contacts } = props
   const pathname = usePathname()
   const { stop, start } = useMotion()
   const [open, setOpen] = useState(false)
-  const [theme, setTheme] = useState<Theme>('paper')
+  // il contenuto del menu si monta alla prima apertura: meno DOM (e meno lavoro) al caricamento
+  const [menuMounted, setMenuMounted] = useState(false)
+  const [theme, setTheme] = useState<Theme>('light')
   const [hidden, setHidden] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [active, setActive] = useState<string | null>(null)
 
   const menuRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const tl = useRef<gsap.core.Timeline | null>(null)
 
-  /* Tema dell'header = tema della sezione che c'è sotto */
+  /* Colori dell'header = tema della sezione sotto */
   useEffect(() => {
     const sections = Array.from(document.querySelectorAll<HTMLElement>('[data-theme]'))
     if (!sections.length) return
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) setTheme((entry.target.getAttribute('data-theme') as Theme) ?? 'paper')
+          if (entry.isIntersecting) setTheme((entry.target.getAttribute('data-theme') as Theme) ?? 'light')
         })
       },
-      { rootMargin: '-28px 0px -96% 0px' },
+      { rootMargin: '-30px 0px -96% 0px' },
     )
     sections.forEach((s) => io.observe(s))
     return () => io.disconnect()
   }, [pathname])
+
+  /* Voce di menu attiva = sezione al centro dello schermo */
+  useEffect(() => {
+    const targets = links.map((l) => document.getElementById(l.id)).filter(Boolean) as HTMLElement[]
+    if (!targets.length) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) setActive(e.target.id)
+        })
+      },
+      { rootMargin: '-45% 0px -50% 0px' },
+    )
+    targets.forEach((t) => io.observe(t))
+    return () => io.disconnect()
+  }, [pathname, links])
 
   /* Si nasconde scendendo, ricompare risalendo */
   useEffect(() => {
@@ -79,7 +106,7 @@ export function Header(props: HeaderProps) {
       requestAnimationFrame(() => {
         const y = window.scrollY
         setScrolled(y > 12)
-        if (y > window.innerHeight * 0.6 && y > last + 6) setHidden(true)
+        if (y > window.innerHeight * 0.7 && y > last + 6) setHidden(true)
         else if (y < last - 6 || y < 80) setHidden(false)
         last = y
         ticking = false
@@ -89,11 +116,12 @@ export function Header(props: HeaderProps) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  /* Menu a tutto schermo */
   const setMenu = useCallback(
     (next: boolean) => {
       const el = menuRef.current
       if (!el) return
+      // monta subito il contenuto, così l'animazione trova le voci
+      if (next) flushSync(() => setMenuMounted(true))
       setOpen(next)
       const reduce = prefersReducedMotion()
       tl.current?.kill()
@@ -103,14 +131,9 @@ export function Header(props: HeaderProps) {
         el.style.visibility = 'visible'
         tl.current = gsap
           .timeline({ onComplete: () => closeRef.current?.focus() })
-          .fromTo(el, { clipPath: 'inset(0% 0% 100% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: reduce ? 0 : 0.85, ease: 'expo.inOut' })
-          .fromTo(
-            el.querySelectorAll('[data-menu-item]'),
-            { yPercent: 110 },
-            { yPercent: 0, duration: reduce ? 0 : 1, stagger: 0.06, ease: 'expo.out' },
-            reduce ? 0 : 0.35,
-          )
-          .fromTo(el.querySelectorAll('[data-menu-fade]'), { opacity: 0 }, { opacity: 1, duration: reduce ? 0 : 0.6, stagger: 0.05 }, reduce ? 0 : 0.6)
+          .fromTo(el, { clipPath: 'circle(0% at 100% 0%)' }, { clipPath: 'circle(150% at 100% 0%)', duration: reduce ? 0 : 0.9, ease: 'expo.inOut' })
+          .fromTo(el.querySelectorAll('[data-menu-item]'), { yPercent: 110 }, { yPercent: 0, duration: reduce ? 0 : 0.9, stagger: 0.05, ease: 'expo.out' }, reduce ? 0 : 0.35)
+          .fromTo(el.querySelectorAll('[data-menu-fade]'), { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: reduce ? 0 : 0.6, stagger: 0.05 }, reduce ? 0 : 0.55)
       } else {
         tl.current = gsap.timeline({
           onComplete: () => {
@@ -119,7 +142,7 @@ export function Header(props: HeaderProps) {
             start()
           },
         })
-        tl.current.to(el, { clipPath: 'inset(0% 0% 100% 0%)', duration: reduce ? 0 : 0.7, ease: 'expo.inOut' })
+        tl.current.to(el, { clipPath: 'circle(0% at 100% 0%)', duration: reduce ? 0 : 0.7, ease: 'expo.inOut' })
         toggleRef.current?.focus({ preventScroll: true })
       }
     },
@@ -154,40 +177,49 @@ export function Header(props: HeaderProps) {
     return () => document.removeEventListener('keydown', onKey)
   }, [open, setMenu])
 
-  const themeCls = theme === 'ink' ? 'text-paper' : 'text-ink'
-  const bgCls = scrolled ? (theme === 'ink' ? 'bg-ink' : theme === 'acid' ? 'bg-acid' : 'bg-paper') : 'bg-transparent'
+  const onDark = theme !== 'light'
+  const bg = !scrolled ? 'bg-transparent' : theme === 'dark' ? 'bg-deep/95 shadow-[0_1px_0_rgb(255_255_255/0.08)]' : theme === 'violet' ? 'bg-violet' : 'bg-bg/95 shadow-[0_1px_0_var(--color-line)]'
 
   return (
     <>
       <header
         data-site-header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 transition-[transform,background-color,color] duration-500 ease-out-expo',
-          themeCls,
-          bgCls,
+          'fixed inset-x-0 top-0 z-50 transition-[transform,background-color,color,box-shadow] duration-500 ease-out-expo',
+          onDark ? 'text-white' : 'text-ink',
+          bg,
           hidden && !open ? '-translate-y-full' : 'translate-y-0',
         )}
-        style={{ ['--focus' as string]: theme === 'ink' ? 'var(--color-acid)' : 'var(--color-ink)' }}
+        style={{ ['--focus' as string]: onDark ? 'var(--color-lilac-soft)' : 'var(--color-violet)' }}
       >
-        <div className="wrap flex h-[var(--header-h)] items-center justify-between gap-4">
-          <SmartLink href={homeHref} aria-label={labels.home} className="group flex items-center gap-2.5" transitionLabel="Irene Chies">
-            <RegMark size={20} className="transition-transform duration-700 ease-out-expo group-hover:rotate-90" />
-            <span className="t-display text-[1.35rem] leading-none tracking-[-0.02em] whitespace-nowrap uppercase">Irene Chies</span>
+        <div className="wrap flex h-[var(--header-h)] items-center justify-between gap-6">
+          <SmartLink href={homeHref} aria-label={labels.home} className="group" transitionLabel="Irene Chies">
+            <Logo />
           </SmartLink>
 
-          <p className="label hidden items-center gap-2 xl:flex">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-acid opacity-75 motion-reduce:animate-none" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-acid shadow-[0_0_0_1px_var(--color-ink)]" />
-            </span>
-            {availability}
-          </p>
+          <nav aria-label={labels.mainNav} className="hidden lg:block">
+            <ul className="flex items-center gap-1">
+              {links.map((l) => (
+                <li key={l.href}>
+                  <SmartLink
+                    href={l.href}
+                    className={cn(
+                      'relative rounded-full px-4 py-2 text-[0.95rem] font-medium transition-colors duration-300',
+                      active === l.id ? (onDark ? 'bg-white/10' : 'bg-surface text-violet') : onDark ? 'hover:bg-white/10' : 'hover:bg-surface',
+                    )}
+                    aria-current={active === l.id ? 'true' : undefined}
+                  >
+                    {l.label}
+                  </SmartLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
 
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            <StrategyToggle label={labels.strategy} labelOn={labels.strategyOn} shortcut={labels.strategyKey} className="hidden lg:inline-flex" />
+          <div className="flex items-center gap-2 sm:gap-3">
             <LangSwitch locale={locale} label={labels.language} switchTo={labels.switchTo} className="hidden md:flex" />
             <span className="hidden sm:inline-block">
-              <Button href={contactHref} size="sm" variant={theme === 'ink' ? 'acid' : 'ink'} icon="up">
+              <Button href={contactHref} size="sm" variant={onDark ? 'light' : 'primary'} icon="up">
                 {labels.cta}
               </Button>
             </span>
@@ -198,89 +230,94 @@ export function Header(props: HeaderProps) {
               aria-expanded={open}
               aria-controls="site-menu"
               aria-label={open ? labels.menuClose : labels.menuOpen}
-              className="group flex min-h-11 items-center gap-2.5 pl-2"
+              className={cn(
+                'grid h-11 w-11 place-items-center rounded-full transition-colors lg:hidden',
+                onDark ? 'bg-white/10 hover:bg-white/20' : 'bg-surface hover:bg-surface-2',
+              )}
             >
-              <span className="label">{labels.menu}</span>
-              <span aria-hidden="true" className="flex w-6 flex-col gap-[5px]">
-                <span className="h-[1.5px] w-full bg-current transition-transform duration-500 ease-out-expo group-hover:scale-x-75" />
-                <span className="h-[1.5px] w-full bg-current transition-transform duration-500 ease-out-expo group-hover:translate-x-1" />
+              <span aria-hidden="true" className="flex w-5 flex-col gap-[5px]">
+                <span className="h-[2px] w-full rounded bg-current" />
+                <span className="h-[2px] w-3/4 rounded bg-current" />
               </span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* ─────────────── MENU ─────────────── */}
+      {/* ─────────────── MENU (mobile/tablet) ─────────────── */}
       <div
         id="site-menu"
         ref={menuRef}
         role="dialog"
         aria-modal="true"
         aria-label={labels.mainNav}
-        className="theme-ink fixed inset-0 z-[80] flex flex-col overflow-y-auto"
-        style={{ visibility: 'hidden', clipPath: 'inset(0% 0% 100% 0%)' }}
+        className="theme-dark fixed inset-0 z-[80] flex flex-col overflow-y-auto"
+        style={{ visibility: 'hidden', clipPath: 'circle(0% at 100% 0%)' }}
       >
-        <div className="wrap flex h-[var(--header-h)] shrink-0 items-center justify-between">
-          <span className="t-display text-[1.35rem] leading-none tracking-[-0.03em] uppercase">Irene Chies</span>
-          <button ref={closeRef} type="button" onClick={() => setMenu(false)} className="flex min-h-11 items-center gap-3" aria-label={labels.menuClose}>
-            <span className="label">{labels.close}</span>
-            <span aria-hidden="true" className="relative h-6 w-6">
-              <span className="absolute top-1/2 left-0 h-[1.5px] w-full rotate-45 bg-current" />
-              <span className="absolute top-1/2 left-0 h-[1.5px] w-full -rotate-45 bg-current" />
-            </span>
-          </button>
-        </div>
-
-        <nav aria-label={labels.mainNav} className="wrap flex flex-1 flex-col justify-center py-8">
-          <ul className="grid gap-1">
-            {links.map((link, i) => (
-              <li key={link.href} className="overflow-hidden border-b border-[var(--rule)] first:border-t">
-                <span data-menu-item className="block">
-                  <SmartLink
-                    href={link.href}
-                    onClick={() => setMenu(false)}
-                    className="group flex items-baseline justify-between gap-4 py-2 sm:py-3"
-                  >
-                    <span className="flex items-baseline gap-4 sm:gap-8">
-                      <span className="label text-paper/50">0{i + 1}</span>
-                      <span className="t-display text-[clamp(2.9rem,10.5vw,8.5rem)] leading-[0.88] uppercase transition-[color,transform] duration-500 ease-out-expo group-hover:translate-x-3 group-hover:text-acid">
-                        {link.label}
-                      </span>
-                    </span>
-                    <span className="label hidden text-acid opacity-0 transition-opacity group-hover:opacity-100 sm:block">→</span>
-                  </SmartLink>
+        {menuMounted && (
+          <>
+            <div aria-hidden="true" className="glow -top-40 -right-40 h-[32rem] w-[32rem] opacity-70" />
+            <div className="wrap relative flex h-[var(--header-h)] shrink-0 items-center justify-between">
+              <Logo />
+              <button ref={closeRef} type="button" onClick={() => setMenu(false)} className="grid h-11 w-11 place-items-center rounded-full bg-white/10" aria-label={labels.menuClose}>
+                <span aria-hidden="true" className="relative h-5 w-5">
+                  <span className="absolute top-1/2 left-0 h-[2px] w-full rotate-45 rounded bg-current" />
+                  <span className="absolute top-1/2 left-0 h-[2px] w-full -rotate-45 rounded bg-current" />
                 </span>
-              </li>
-            ))}
-          </ul>
-        </nav>
+              </button>
+            </div>
 
-        <div className="wrap grid shrink-0 gap-6 pb-[calc(var(--gutter)+env(safe-area-inset-bottom))] sm:grid-cols-3 sm:items-end">
-          <div data-menu-fade className="grid gap-1">
-            <p className="label text-paper/55">{labels.menuNote}</p>
-            <a href={`mailto:${contacts.email}`} className="link-u w-fit text-lg">
-              {contacts.email}
-            </a>
-          </div>
-          <div data-menu-fade className="flex flex-wrap gap-x-5 gap-y-2">
-            <a href={contacts.whatsapp} target="_blank" rel="noopener noreferrer" className="label link-u">
-              WhatsApp ↗
-            </a>
-            <a href={contacts.instagram} target="_blank" rel="noopener noreferrer" className="label link-u">
-              Instagram ↗
-            </a>
-            <a href={contacts.linkedin} target="_blank" rel="noopener noreferrer" className="label link-u">
-              LinkedIn ↗
-            </a>
-          </div>
-          <div data-menu-fade className="flex flex-wrap items-center justify-between gap-4 sm:justify-end">
-            <StrategyToggle label={labels.strategy} labelOn={labels.strategyOn} shortcut={labels.strategyKey} className="inline-flex lg:hidden" />
-            <LangSwitch locale={locale} label={labels.language} switchTo={labels.switchTo} className="md:hidden" />
-            <p className="label text-paper/55">
-              {contacts.city} — <LocalTime timeZone={contacts.timeZone} />
-            </p>
-          </div>
-        </div>
+            <nav aria-label={labels.mainNav} className="wrap relative flex flex-1 flex-col justify-center py-8">
+              <ul className="grid gap-1">
+                {links.map((link, i) => (
+                  <li key={link.href} className="overflow-hidden">
+                    <span data-menu-item className="block">
+                      <SmartLink href={link.href} onClick={() => setMenu(false)} className="group flex items-baseline gap-4 py-2">
+                        <span className="label text-white/60">0{i + 1}</span>
+                        <span className="text-[clamp(2.6rem,10vw,5rem)] leading-none font-semibold tracking-[-0.05em] transition-colors duration-300 group-hover:text-lilac">
+                          {link.label}
+                        </span>
+                      </SmartLink>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <div className="wrap relative grid shrink-0 gap-6 pb-[calc(var(--gutter)+env(safe-area-inset-bottom))]">
+              <div data-menu-fade>
+                <Button href={contactHref} variant="primary" className="w-full justify-between sm:w-auto">
+                  {labels.cta}
+                </Button>
+              </div>
+              <div data-menu-fade className="grid gap-1">
+                <p className="label text-white/60">{labels.menuNote}</p>
+                <a href={`mailto:${contacts.email}`} className="link-u w-fit text-lg">
+                  {contacts.email}
+                </a>
+              </div>
+              <div data-menu-fade className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap gap-x-5 gap-y-2 text-[0.95rem]">
+                  <a href={contacts.whatsapp} target="_blank" rel="noopener noreferrer" className="link-u">
+                    WhatsApp ↗
+                  </a>
+                  <a href={contacts.instagram} target="_blank" rel="noopener noreferrer" className="link-u">
+                    Instagram ↗
+                  </a>
+                  <a href={contacts.linkedin} target="_blank" rel="noopener noreferrer" className="link-u">
+                    LinkedIn ↗
+                  </a>
+                </div>
+                <div className="flex items-center gap-4">
+                  <LangSwitch locale={locale} label={labels.language} switchTo={labels.switchTo} />
+                  <p className="label text-white/60">
+                    {contacts.city} · <LocalTime timeZone={contacts.timeZone} />
+                  </p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   )

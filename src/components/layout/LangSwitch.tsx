@@ -16,8 +16,10 @@ export function LangSwitch({ locale, label, switchTo, className }: { locale: Loc
       <span aria-hidden="true" className="opacity-40">
         /
       </span>
-      <a href={translatePath(pathname, other)} hrefLang={other} lang={other} aria-label={switchTo} className="px-1 py-2 opacity-55 transition-opacity hover:opacity-100">
+      <a href={translatePath(pathname, other)} hrefLang={other} lang={other} className="px-1 py-2 opacity-55 transition-opacity hover:opacity-100">
         {other.toUpperCase()}
+        {/* nome accessibile = testo visibile + spiegazione ("EN — Read in English") */}
+        <span className="sr-only"> — {switchTo}</span>
       </a>
     </div>
   )

@@ -87,12 +87,12 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
     const text = composed()
     return (
       <div ref={resultRef} tabIndex={-1} className="outline-none" role="status">
-        <p className="t-h2 text-acid">{status === 'success' ? form.success.title : form.fallback.title}</p>
-        <p className="t-lead mt-6 max-w-[36ch]">{status === 'success' ? form.success.body : form.fallback.body}</p>
+        <p className="t-h2 text-violet">{status === 'success' ? form.success.title : form.fallback.title}</p>
+        <p className="t-lead mt-5 max-w-[36ch] text-ink-2">{status === 'success' ? form.success.body : form.fallback.body}</p>
         <div className="mt-10 flex flex-wrap gap-3">
           {status === 'fallback' ? (
             <>
-              <Button href={`${whatsapp.split('?')[0]}?text=${encodeURIComponent(text)}`} variant="acid" icon="chat">
+              <Button href={`${whatsapp.split('?')[0]}?text=${encodeURIComponent(text)}`} variant="primary" icon="chat">
                 {form.fallback.whatsapp}
               </Button>
               <Button href={`mailto:${email}?subject=${encodeURIComponent(form.subject)}&body=${encodeURIComponent(text)}`} variant="ghost" icon="up">
@@ -102,7 +102,7 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
           ) : (
             <button
               type="button"
-              className="label link-u"
+              className="link-u font-semibold text-violet"
               onClick={() => {
                 setValues({ name: '', email: '', brand: '', budget: '', message: '', privacy: false })
                 started.current = null
@@ -120,7 +120,7 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
   const describe = (key: keyof Fields) => (errors[key] ? `${key}-error` : undefined)
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="grid gap-9" aria-describedby={status === 'error' ? 'form-error' : undefined}>
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="grid gap-7" aria-describedby={status === 'error' ? 'form-error' : undefined}>
       {/* honeypot: invisibile alle persone, irresistibile per i bot */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
         <label>
@@ -129,7 +129,7 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
         </label>
       </div>
 
-      <div className="grid gap-9 sm:grid-cols-2">
+      <div className="grid gap-7 sm:grid-cols-2">
         <Field id="name" label={form.name} required requiredLabel={form.required} error={errors.name}>
           <input
             id="name"
@@ -166,7 +166,7 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
       </Field>
 
       <fieldset>
-        <legend className="label mb-4">{form.budget}</legend>
+        <legend className="mb-3 text-[0.95rem] font-semibold">{form.budget}</legend>
         <div className="flex flex-wrap gap-2">
           {form.budgetOptions.map((opt) => {
             const checked = values.budget === opt
@@ -174,8 +174,8 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
               <label
                 key={opt}
                 className={cn(
-                  'relative inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 text-[0.95rem] shadow-[inset_0_0_0_1px_var(--rule)] transition-colors duration-300 has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]',
-                  checked ? 'bg-acid text-ink shadow-none' : 'hover:shadow-[inset_0_0_0_1px_currentColor]',
+                  'relative inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 text-[0.95rem] font-medium transition-colors duration-300 has-[:focus-visible]:outline has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]',
+                  checked ? 'bg-violet text-white shadow-glow' : 'bg-surface text-ink-2 hover:bg-surface-2',
                 )}
               >
                 <input type="radio" name="budget" value={opt} checked={checked} onChange={() => set('budget', opt)} className="sr-only" />
@@ -202,7 +202,7 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
       </Field>
 
       <div>
-        <label className="flex cursor-pointer items-start gap-3 text-[0.95rem] leading-snug">
+        <label className="flex cursor-pointer items-start gap-3 text-[0.95rem] leading-snug text-ink-2">
           <input
             type="checkbox"
             name="privacy"
@@ -210,11 +210,11 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
             onChange={(e) => set('privacy', e.target.checked)}
             aria-invalid={!!errors.privacy}
             aria-describedby={describe('privacy')}
-            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-[3px] shadow-[inset_0_0_0_1.5px_currentColor] checked:bg-acid checked:shadow-[inset_0_0_0_1.5px_var(--color-acid)] checked:[background-image:url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22><path%20d=%22M3%208.5l3%203%207-7%22%20stroke=%22%23111%22%20stroke-width=%222%22%20fill=%22none%22/></svg>')]"
+            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-md shadow-[inset_0_0_0_1.5px_#cfc5f3] checked:bg-violet checked:shadow-none checked:[background-image:url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22><path%20d=%22M3%208.5l3%203%207-7%22%20stroke=%22%23fff%22%20stroke-width=%222%22%20fill=%22none%22/></svg>')]"
           />
           <span>
             {form.privacy.split(form.privacyLink)[0]}
-            <SmartLink href={privacyHref} className="link-u">
+            <SmartLink href={privacyHref} className="link-u font-medium text-violet">
               {form.privacyLink}
             </SmartLink>
             {form.privacy.split(form.privacyLink)[1]}
@@ -228,7 +228,7 @@ export function ContactForm({ form, privacyHref, whatsapp, email }: { form: Form
       </div>
 
       <div className="flex flex-wrap items-center gap-6">
-        <Button type="submit" variant="acid" size="lg" disabled={status === 'sending'}>
+        <Button type="submit" variant="primary" size="lg" disabled={status === 'sending'}>
           {status === 'sending' ? form.sending : form.submit}
         </Button>
         <div ref={resultRef} tabIndex={-1} className="outline-none" aria-live="assertive">
@@ -260,9 +260,9 @@ function Field({
 }) {
   return (
     <div className="field">
-      <label htmlFor={id} className="label flex justify-between gap-4">
+      <label htmlFor={id} className="flex justify-between gap-4 text-[0.95rem] font-semibold">
         <span>{label}</span>
-        {required && <span className="muted normal-case">{requiredLabel}</span>}
+        {required && <span className="text-sm font-normal text-muted">{requiredLabel}</span>}
       </label>
       {children}
       {error && (

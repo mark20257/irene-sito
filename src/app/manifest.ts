@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Social Media Manager, Advertiser Meta & Google e Graphic Designer.',
     start_url: '/',
     display: 'browser',
-    background_color: '#f4f1ea',
-    theme_color: '#f4f1ea',
+    background_color: '#fbfaff',
+    theme_color: '#6b3cf6',
     lang: 'it-IT',
     icons: [
       { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },

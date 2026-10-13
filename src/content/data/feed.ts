@@ -1,17 +1,19 @@
 import type { FeedPost } from '../types'
 import { brands } from './brands'
 import { site } from '../site'
+import { place, type Pending } from './placeholders'
+
+type FeedDraft = Omit<FeedPost, 'media'> & { media: Pending }
 
 /**
  * Sezione "Il feed": i post che scorrono nel telefono, con le note a margine.
  * ⚠️ D'esempio. Per usare i tuoi post veri: media: { type: 'image', src: '/images/feed/post-1.jpg', width: 1080, height: 1350, alt: {…} }
  */
-export const feedPosts: FeedPost[] = [
+const drafts: FeedDraft[] = [
   {
     kind: 'carousel',
     author: site.instagram.handle,
     media: {
-      type: 'art',
       art: {
         kind: 'post',
         brand: brands.irene,
@@ -36,7 +38,6 @@ export const feedPosts: FeedPost[] = [
     kind: 'ad',
     author: 'atelier.ombra',
     media: {
-      type: 'art',
       art: {
         kind: 'ad',
         brand: brands.ombra,
@@ -57,7 +58,6 @@ export const feedPosts: FeedPost[] = [
     kind: 'reel',
     author: 'panificio.malva',
     media: {
-      type: 'art',
       art: {
         kind: 'post',
         brand: brands.malva,
@@ -78,7 +78,6 @@ export const feedPosts: FeedPost[] = [
     kind: 'post',
     author: 'bottega.fiore',
     media: {
-      type: 'art',
       art: { kind: 'sign', brand: brands.fiore },
       alt: { it: 'Nuova insegna di Bottega Fiore', en: 'Bottega Fiore’s new sign' },
     },
@@ -94,7 +93,6 @@ export const feedPosts: FeedPost[] = [
     kind: 'meme',
     author: site.instagram.handle,
     media: {
-      type: 'art',
       art: {
         kind: 'post',
         brand: brands.irene,
@@ -115,7 +113,6 @@ export const feedPosts: FeedPost[] = [
     kind: 'ad',
     author: 'osteria.ventitre',
     media: {
-      type: 'art',
       art: {
         kind: 'ad',
         brand: brands.ventitre,
@@ -134,3 +131,6 @@ export const feedPosts: FeedPost[] = [
     },
   },
 ]
+
+/** Immagini in /public/images/feed/post-1.webp … */
+export const feedPosts: FeedPost[] = drafts.map((p, i) => ({ ...p, media: place(p.media, `feed/post-${i + 1}`) }))

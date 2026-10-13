@@ -6,9 +6,9 @@ import { gsap, isFinePointer, prefersReducedMotion } from '@/lib/gsap'
 /**
  * Cursore custom (solo mouse/trackpad, mai con movimento ridotto).
  * Stati:
- *  - default: punto in "difference"
+ *  - default: punto viola
  *  - link:    il punto si allarga
- *  - label:   cerchio acido con testo (data-cursor="Apri")
+ *  - label:   cerchio viola con testo (data-cursor="Apri")
  *  - hidden:  sui campi di testo
  */
 export function Cursor() {

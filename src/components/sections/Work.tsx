@@ -1,54 +1,45 @@
 import { getDictionary, paths, t, type Locale } from '@/content'
 import { cases } from '@/content/data/cases'
-import { Media, mediaRatio } from '@/components/ui/Media'
-import { Note } from '@/components/ui/Note'
+import { Media } from '@/components/ui/Media'
 import { SectionHead } from '@/components/ui/SectionHead'
 import { SmartLink } from '@/components/ui/SmartLink'
 import { ArrowUpRight } from '@/components/ui/Icons'
 import { cn } from '@/lib/utils'
 import { WorkClient } from './WorkClient'
 
-/* Impaginazione asimmetrica della griglia (12 colonne su desktop, 4 su mobile) */
-const layout = [
-  'col-span-4 lg:col-span-6',
-  'col-span-3 col-start-2 lg:col-span-5 lg:col-start-8 lg:mt-[22vh]',
-  'col-span-3 lg:col-span-4 lg:col-start-2 lg:-mt-[6vh]',
-  'col-span-4 lg:col-span-6 lg:col-start-7 lg:mt-[10vh]',
-  'col-span-3 col-start-2 lg:col-span-5 lg:col-start-1',
-  'col-span-3 lg:col-span-4 lg:col-start-8 lg:mt-[16vh]',
-]
-
 export function Work({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale)
   const w = dict.work
 
+  /* Griglia a due colonne sfalsate: le card a destra scendono un po' (ritmo editoriale) */
   const grid = (
-    <ul className="grid-12 gap-y-16 lg:gap-y-24">
+    <ul className="mx-auto grid max-w-[76rem] gap-x-[clamp(1.25rem,3vw,3rem)] gap-y-12 md:grid-cols-2 md:gap-y-16">
       {cases.map((c, i) => (
-        <li key={c.slug} className={cn(layout[i % layout.length])}>
-          <SmartLink href={paths.case(c.slug, locale)} transitionLabel={c.client} data-cursor={w.cursor} className="group block" aria-label={`${c.client} — ${w.open}`}>
-            <div className="relative overflow-hidden bg-paper-2" style={{ aspectRatio: mediaRatio(c.cover) }} data-reveal data-reveal-y="80">
-              <div className="absolute inset-0 scale-[1.12]" data-parallax="4">
-                <div className="h-full w-full transition-transform duration-[1.2s] ease-out-expo group-hover:scale-[1.04]">
-                  <Media media={c.cover} locale={locale} sizes="(min-width: 1024px) 45vw, 90vw" />
-                </div>
+        <li key={c.slug} className={cn(i % 2 === 1 && 'md:translate-y-28')}>
+          <SmartLink
+            href={paths.case(c.slug, locale)}
+            transitionLabel={c.client}
+            data-cursor={w.cursor}
+            className="group block"
+          >
+            <div data-tilt className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft transition-shadow duration-500 group-hover:shadow-lift" data-reveal data-reveal-y="60">
+              <div className="absolute inset-0 transition-transform duration-[1.2s] ease-out-expo group-hover:scale-[1.04]">
+                <Media media={c.cover} locale={locale} sizes="(min-width: 768px) 46vw, 92vw" />
               </div>
-              <span className="chip chip--acid absolute top-3 left-3 shadow-[0_0_0_1px_var(--color-ink)]">
-                {c.highlight.value} · {t(c.highlight.label, locale)}
+              <span className="absolute top-4 left-4 inline-flex items-baseline gap-2 rounded-full bg-white/95 px-3.5 py-2 text-ink shadow-soft">
+                <span className="t-num text-lg text-violet">{c.highlight.value}</span>
+                <span className="text-[0.8rem] font-medium">{t(c.highlight.label, locale)}</span>
+              </span>
+              <span className="absolute right-4 bottom-4 grid h-12 w-12 translate-y-2 place-items-center rounded-full bg-violet text-white opacity-0 shadow-glow transition-all duration-500 ease-out-expo group-hover:translate-y-0 group-hover:opacity-100">
+                <ArrowUpRight size={18} />
               </span>
             </div>
-            <div className="mt-4 flex items-start justify-between gap-4">
+            <div className="mt-5 flex items-start justify-between gap-4 px-1">
               <div>
-                <p className="label muted">
-                  {String(i + 1).padStart(2, '0')} — {t(c.sector, locale)}
-                </p>
-                <h3 className="t-h4 mt-2 flex items-center gap-2 uppercase">
-                  {c.client}
-                  <ArrowUpRight size={18} className="-translate-x-2 opacity-0 transition-all duration-500 ease-out-expo group-hover:translate-x-0 group-hover:opacity-100" />
-                </h3>
-                <p className="mt-2 max-w-[42ch] text-[var(--muted)]">{t(c.excerpt, locale)}</p>
+                <h3 className="t-h4 transition-colors duration-300 group-hover:text-violet">{c.client}</h3>
+                <p className="mt-1 text-[0.95rem] text-muted">{t(c.sector, locale)}</p>
               </div>
-              <ul className="hidden shrink-0 flex-wrap justify-end gap-1 sm:flex" aria-label={w.columns.services}>
+              <ul className="flex shrink-0 flex-wrap justify-end gap-1.5" aria-label={w.columns.services}>
                 {c.services.map((s) => (
                   <li key={s} className="chip">
                     {dict.services_short[s]}
@@ -63,38 +54,42 @@ export function Work({ locale }: { locale: Locale }) {
   )
 
   const index = (
-    <div>
-      <div className="label muted hidden grid-cols-12 gap-4 border-b border-[var(--rule)] pb-3 lg:grid">
+    <div className="card overflow-hidden px-4 sm:px-8">
+      <div className="hidden grid-cols-12 gap-4 border-b border-line py-4 text-sm font-medium text-muted lg:grid">
         <span className="col-span-1">N°</span>
-        <span className="col-span-5">{w.columns.client}</span>
+        <span className="col-span-4">{w.columns.client}</span>
         <span className="col-span-3">{w.columns.sector}</span>
         <span className="col-span-2">{w.columns.services}</span>
-        <span className="col-span-1 text-right">{w.columns.result}</span>
+        <span className="col-span-2 text-right">{w.columns.result}</span>
       </div>
       <ul data-work-index>
         {cases.map((c, i) => (
-          <li key={c.slug} data-index={i} className="border-b border-[var(--rule)]">
+          <li key={c.slug} data-index={i} className="border-b border-line last:border-b-0">
             <SmartLink
               href={paths.case(c.slug, locale)}
               transitionLabel={c.client}
               data-cursor={w.cursor}
-              className="group grid grid-cols-[4.5rem_1fr_auto] items-center gap-4 py-4 lg:grid-cols-12 lg:py-6"
+              className="group grid grid-cols-[4rem_1fr_auto] items-center gap-4 py-4 lg:grid-cols-12 lg:py-6"
             >
-              <span className="relative aspect-[4/5] w-[4.5rem] overflow-hidden lg:hidden">
-                <Media media={c.cover} locale={locale} sizes="80px" />
+              <span className="relative aspect-square w-16 overflow-hidden rounded-xl lg:hidden">
+                <Media media={c.cover} locale={locale} sizes="64px" />
               </span>
-              <span className="label muted hidden lg:col-span-1 lg:block">{String(i + 1).padStart(2, '0')}</span>
-              <span className="lg:col-span-5">
-                <span className="t-h3 block text-[clamp(1.6rem,1rem+3vw,4.25rem)] uppercase transition-transform duration-700 ease-out-expo group-hover:translate-x-4">
+              <span className="hidden text-sm text-muted lg:col-span-1 lg:block">{String(i + 1).padStart(2, '0')}</span>
+              <span className="lg:col-span-4">
+                <span className="block text-[clamp(1.3rem,1rem+1.6vw,2.4rem)] leading-tight font-semibold tracking-[-0.04em] transition-[color,transform] duration-500 ease-out-expo group-hover:translate-x-2 group-hover:text-violet">
                   {c.client}
                 </span>
-                <span className="label muted mt-1 block lg:hidden">{t(c.sector, locale)}</span>
+                <span className="mt-0.5 block text-sm text-muted lg:hidden">{t(c.sector, locale)}</span>
               </span>
-              <span className="label hidden lg:col-span-3 lg:block">{t(c.sector, locale)}</span>
-              <span className="label hidden lg:col-span-2 lg:block">{c.services.map((s) => dict.services_short[s]).join(' · ')}</span>
-              <span className="t-display text-right text-[clamp(1.4rem,1rem+1.4vw,2.6rem)] leading-none lg:col-span-1">
-                <span className="transition-colors duration-500 group-hover:bg-acid">{c.highlight.value}</span>
+              <span className="hidden text-[0.95rem] text-ink-2 lg:col-span-3 lg:block">{t(c.sector, locale)}</span>
+              <span className="hidden gap-1.5 lg:col-span-2 lg:flex">
+                {c.services.map((s) => (
+                  <span key={s} className="chip">
+                    {dict.services_short[s]}
+                  </span>
+                ))}
               </span>
+              <span className="t-num text-right text-[clamp(1.2rem,1rem+1vw,2rem)] text-violet lg:col-span-2">{c.highlight.value}</span>
             </SmartLink>
           </li>
         ))}
@@ -102,13 +97,12 @@ export function Work({ locale }: { locale: Locale }) {
     </div>
   )
 
-  const previews = cases.map((c) => <Media key={c.slug} media={c.cover} locale={locale} sizes="360px" />)
+  const previews = cases.map((c) => <Media key={c.slug} media={c.cover} locale={locale} sizes="340px" />)
 
   return (
-    <section id={dict.sections.work.id} data-theme="paper" aria-labelledby="work-title" className="theme-paper section">
+    <section id={dict.sections.work.id} data-theme="light" aria-labelledby="work-title" className="theme-light section">
       <div className="wrap">
-        <SectionHead index={4} id="work-title" label={dict.sections.work.label} title={w.title} intro={w.intro} />
-        <Note n="07">{dict.strategy.notes.work}</Note>
+        <SectionHead id="work-title" label={dict.sections.work.label} title={w.title} intro={w.intro} />
         <WorkClient grid={grid} index={index} previews={previews} labels={w.views} />
       </div>
     </section>

@@ -16,4 +16,43 @@ export const prefersReducedMotion = () =>
 export const isFinePointer = () =>
   typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
 
+/*
+ * Un solo ScrollTrigger.refresh() quando serve. Mentre MotionProvider prepara la pagina
+ * le richieste si ignorano (il provider ricalcola comunque alla fine); dopo, si accorpano
+ * in un unico refresh al frame successivo.
+ */
+const refresh = { pending: true, raf: 0 }
+
+export function markMotionPending() {
+  refresh.pending = true
+  cancelAnimationFrame(refresh.raf)
+  refresh.raf = 0
+}
+
+export function markMotionSettled() {
+  refresh.pending = false
+}
+
+export function refreshSoon() {
+  if (typeof window === 'undefined' || refresh.pending || refresh.raf) return
+  refresh.raf = requestAnimationFrame(() => {
+    refresh.raf = 0
+    ScrollTrigger.refresh()
+  })
+}
+
+/**
+ * Rimanda `fn` a quando il thread è libero (dopo il primo paint): le animazioni si preparano
+ * senza rallentare il caricamento. Restituisce la funzione che annulla l'attesa.
+ * Con useGSAP passare `contextSafe(fn)`, così il contesto ripulisce anche ciò che `fn` crea.
+ */
+export function whenIdle(fn: () => unknown, timeout = 1200) {
+  if (typeof window.requestIdleCallback === 'function') {
+    const id = window.requestIdleCallback(() => fn(), { timeout })
+    return () => window.cancelIdleCallback(id)
+  }
+  const id = window.setTimeout(fn, 50)
+  return () => window.clearTimeout(id)
+}
+
 export { gsap, ScrollTrigger, SplitText, useGSAP }

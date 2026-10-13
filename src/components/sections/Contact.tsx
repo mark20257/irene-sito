@@ -1,7 +1,6 @@
 import { getDictionary, paths, type Locale } from '@/content'
 import { site, whatsappLink } from '@/content/site'
 import { Button } from '@/components/ui/Button'
-import { Note } from '@/components/ui/Note'
 import { Rich } from '@/components/ui/Rich'
 import { ContactForm } from './ContactForm'
 import { CopyEmail } from './CopyEmail'
@@ -12,71 +11,59 @@ export function Contact({ locale }: { locale: Locale }) {
   const wa = whatsappLink(c.direct.whatsappText)
 
   return (
-    <section id={dict.sections.contact.id} data-theme="ink" aria-labelledby="contact-title" className="theme-ink section relative" data-hide-sticky>
-      <div className="wrap">
-        <p className="label flex items-center gap-3" data-reveal data-reveal-y="12">
-          <span>(10)</span>
-          <span className="h-px flex-1 bg-[var(--rule)]" aria-hidden="true" />
-          <span>{dict.sections.contact.label}</span>
-          <span className="muted hidden sm:inline">TAV. 10/10</span>
-        </p>
+    <section id={dict.sections.contact.id} data-theme="dark" aria-labelledby="contact-title" className="theme-dark section relative overflow-hidden" data-hide-sticky>
+      <div aria-hidden="true" className="absolute -top-40 -right-40 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle_at_34%_30%,#c4b5fd_0%,#7c4dff_35%,#3b1aa8_65%,transparent_70%)] opacity-70 blur-[2px]" />
+      <div aria-hidden="true" className="glow bottom-0 -left-40 h-[30rem] w-[30rem] opacity-30" />
 
-        {/* La CTA enorme */}
-        <h2
-          id="contact-title"
-          className="t-display mt-10 text-[clamp(3.6rem,13.5vw,16rem)] leading-[0.82] tracking-[-0.012em] uppercase"
-          style={{ fontStretch: '78%' }}
-          data-split
-          data-velocity
-        >
+      <div className="wrap relative">
+        <p className="eyebrow" data-reveal data-reveal-y="12">
+          {dict.sections.contact.label}
+        </p>
+        <h2 id="contact-title" className="t-name mt-6 max-w-[12ch] text-[clamp(3.2rem,9vw,8.5rem)]" data-split>
           <Rich text={c.title} />
         </h2>
+        <p className="t-lead mt-8 max-w-[44ch] text-white/80" data-reveal>
+          {c.lead}
+        </p>
 
-        <div className="grid-12 mt-12 gap-y-16 lg:mt-20">
-          <p className="t-lead col-span-4 max-w-[34ch] lg:col-span-5" data-reveal>
-            {c.lead}
-          </p>
-
-          <div className="col-span-4 lg:col-span-7 lg:col-start-1 lg:row-start-2">
+        <div className="mt-14 grid items-start gap-5 lg:grid-cols-12">
+          <div className="theme-light rounded-[var(--radius-card)] bg-white p-6 text-ink shadow-lift sm:p-10 lg:col-span-8">
             <ContactForm form={c.form} privacyHref={paths.privacy(locale)} whatsapp={wa} email={site.email} />
-            <Note n="13">{dict.strategy.notes.contact}</Note>
           </div>
 
-          <aside className="col-span-4 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1" aria-labelledby="direct-title">
-            <div className="grid gap-10 lg:sticky lg:top-[calc(var(--header-h)+2rem)]">
-              <div>
-                <p id="direct-title" className="label muted mb-5">
-                  {c.direct.title}
-                </p>
-                <Button href={wa} variant="acid" icon="chat" className="w-full justify-between">
+          <aside className="grid gap-5 lg:col-span-4" aria-labelledby="direct-title">
+            <div className="card p-6 sm:p-8">
+              <p id="direct-title" className="text-sm font-semibold text-white/65">
+                {c.direct.title}
+              </p>
+              <div className="mt-4">
+                <Button href={wa} variant="primary" icon="chat" className="w-full justify-between">
                   {c.direct.whatsapp}
                 </Button>
-                <p className="label muted mt-3">{c.direct.response}</p>
               </div>
-              <div>
-                <p className="label muted mb-3">{c.direct.email}</p>
-                <CopyEmail email={site.email} copy={c.direct.copy} copied={c.direct.copied} />
-              </div>
-              <div>
-                <Button href={site.calendly} variant="ghost" icon="up" className="w-full justify-between">
-                  {c.direct.calendly}
-                </Button>
-              </div>
-              <div>
-                <p className="label muted mb-3">{c.direct.social}</p>
-                <ul className="grid gap-2 text-lg">
-                  <li>
-                    <a href={site.instagram.url} target="_blank" rel="noopener noreferrer" className="link-u link-u--in">
-                      Instagram — {site.instagram.handle} ↗
-                    </a>
-                  </li>
-                  <li>
-                    <a href={site.linkedin} target="_blank" rel="noopener noreferrer" className="link-u link-u--in">
-                      LinkedIn ↗
-                    </a>
-                  </li>
-                </ul>
-              </div>
+              <p className="mt-3 text-sm text-white/65">{c.direct.response}</p>
+            </div>
+            <div className="card p-6 sm:p-8">
+              <p className="mb-3 text-sm font-semibold text-white/65">{c.direct.email}</p>
+              <CopyEmail email={site.email} copy={c.direct.copy} copied={c.direct.copied} />
+            </div>
+            <div className="card p-6 sm:p-8">
+              <Button href={site.calendly} variant="light" icon="up" className="w-full justify-between">
+                {c.direct.calendly}
+              </Button>
+              <p className="mt-5 mb-2 text-sm font-semibold text-white/65">{c.direct.social}</p>
+              <ul className="grid gap-1.5 text-[1.05rem]">
+                <li>
+                  <a href={site.instagram.url} target="_blank" rel="noopener noreferrer" className="link-u link-u--in">
+                    Instagram — {site.instagram.handle} ↗
+                  </a>
+                </li>
+                <li>
+                  <a href={site.linkedin} target="_blank" rel="noopener noreferrer" className="link-u link-u--in">
+                    LinkedIn ↗
+                  </a>
+                </li>
+              </ul>
             </div>
           </aside>
         </div>

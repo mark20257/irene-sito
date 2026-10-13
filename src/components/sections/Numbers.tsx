@@ -1,7 +1,6 @@
 import { getDictionary, t, type Locale } from '@/content'
 import { metrics } from '@/content/data/proof'
 import type { Metric } from '@/content/types'
-import { Note } from '@/components/ui/Note'
 import { SectionHead } from '@/components/ui/SectionHead'
 import { formatNumber, cn } from '@/lib/utils'
 
@@ -26,49 +25,44 @@ export function Counter({ metric, locale, className }: { metric: Metric; locale:
   )
 }
 
-const spans = [
-  'col-span-4 lg:col-span-7',
-  'col-span-4 lg:col-span-5',
-  'col-span-4 sm:col-span-2 lg:col-span-4',
-  'col-span-4 sm:col-span-2 lg:col-span-4',
-  'col-span-4 lg:col-span-4',
-]
+/* Bento: due card grandi, tre più piccole */
+const spans = ['lg:col-span-7', 'lg:col-span-5', 'lg:col-span-4', 'lg:col-span-4', 'lg:col-span-4']
 
 export function Numbers({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale)
   const nb = dict.numbers
   return (
-    <section id={dict.sections.numbers.id} data-theme="acid" aria-labelledby="numbers-title" className="theme-acid section relative overflow-hidden">
-      {/* il dato che diventa grafica: barre che crescono con lo scroll */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 flex h-[70%] items-end gap-[1.2vw] px-[var(--gutter)] opacity-[0.07]">
-        {[18, 26, 22, 34, 31, 45, 41, 52, 49, 63, 58, 72, 69, 84, 100].map((v, i) => (
-          <span key={i} className="flex-1 origin-bottom bg-ink" style={{ height: `${v}%` }} data-grow />
-        ))}
-      </div>
+    <section id={dict.sections.numbers.id} data-theme="violet" aria-labelledby="numbers-title" className="theme-violet section relative overflow-hidden">
+      <div aria-hidden="true" className="glow -top-40 -left-40 h-[36rem] w-[36rem] opacity-50" style={{ background: 'radial-gradient(circle, #c4b5fd 0%, transparent 70%)' }} />
+      <div aria-hidden="true" className="glow -right-40 -bottom-60 h-[40rem] w-[40rem] opacity-40" style={{ background: 'radial-gradient(circle, #2a0f8a 0%, transparent 70%)' }} />
 
       <div className="wrap relative">
-        <SectionHead index={6} id="numbers-title" label={dict.sections.numbers.label} title={nb.title} />
-        <Note n="09">{dict.strategy.notes.numbers}</Note>
+        <SectionHead id="numbers-title" label={dict.sections.numbers.label} title={nb.title} />
 
-        <dl className="grid-12 mt-[clamp(3rem,7vw,7rem)] gap-y-14 border-t border-[var(--rule)] pt-10">
+        <dl className="mt-[clamp(3rem,6vw,5rem)] grid gap-4 sm:grid-cols-2 lg:grid-cols-12" data-reveal-group>
           {metrics.map((m, i) => (
-            <div key={i} className={cn(spans[i % spans.length], 'flex flex-col-reverse')} data-reveal>
-              <dt className="mt-4 max-w-[28ch]">
+            <div
+              key={i}
+              data-reveal-item
+              className={cn(
+                'flex flex-col-reverse justify-between gap-8 rounded-[var(--radius-card)] bg-white/10 p-7 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.14)] sm:p-8',
+                i < 2 ? 'min-h-64' : 'min-h-52',
+                i === 0 && 'sm:col-span-2 lg:col-span-7',
+                spans[i],
+              )}
+            >
+              <dt>
                 <span className="t-h4 block">{t(m.label, locale)}</span>
-                {m.note && (
-                  <span className="label muted mt-2 block">
-                    <sup>{i + 1}</sup> {t(m.note, locale)}
-                  </span>
-                )}
+                {m.note && <span className="mt-1.5 block text-[0.9rem] text-white">{t(m.note, locale)}</span>}
               </dt>
-              <dd className="t-display leading-[0.8] tracking-[-0.02em]" style={{ fontSize: i < 2 ? 'clamp(5.5rem, 15vw, 17rem)' : 'clamp(4.5rem, 10vw, 11rem)' }}>
+              <dd className="t-num" style={{ fontSize: i < 2 ? 'clamp(4rem, 9vw, 8.5rem)' : 'clamp(3.2rem, 6vw, 5.5rem)' }}>
                 <Counter metric={m} locale={locale} />
               </dd>
             </div>
           ))}
         </dl>
 
-        <p className="label mt-16 max-w-[80ch] normal-case" data-reveal>
+        <p className="mt-10 max-w-[70ch] text-[0.95rem] text-white/90" data-reveal>
           * {nb.footnote}
         </p>
       </div>

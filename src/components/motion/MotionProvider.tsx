@@ -3,15 +3,18 @@
 import Lenis from 'lenis'
 import { usePathname } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from 'react'
-import { gsap, ScrollTrigger, SplitText, prefersReducedMotion, isFinePointer } from '@/lib/gsap'
+import { gsap, ScrollTrigger, SplitText, prefersReducedMotion, isFinePointer, markMotionPending, markMotionSettled, whenIdle } from '@/lib/gsap'
 
 /* ════════════════════════════════════════════════════════════════════
    MotionProvider
    - Smooth scroll (Lenis) sincronizzato con GSAP ScrollTrigger
    - Comportamenti dichiarativi via data-attribute, così le sezioni restano
      Server Components: data-split, data-reveal, data-counter, data-parallax,
-     data-hl, data-scrub-words, data-magnetic, data-velocity
+     data-scrub-words, data-magnetic, data-velocity, data-tilt
    - Rispetta prefers-reduced-motion (niente Lenis, niente animazioni)
+   - Leggero al caricamento: le entrate "una volta sola" usano un unico
+     IntersectionObserver (niente ScrollTrigger da misurare) e la preparazione
+     è divisa in piccoli lavori che lasciano respirare il thread principale
    ════════════════════════════════════════════════════════════════════ */
 
 type ScrollTarget = string | number | HTMLElement
@@ -35,6 +38,61 @@ export const useMotion = () => useContext(Ctx)
 /** Stato condiviso dello scroll (niente variabili CSS sul root: costerebbero un ricalcolo stili a ogni frame) */
 export const scrollState = { velocity: 0, direction: 1 as 1 | -1 }
 
+type Job = () => void | (() => void)
+type Enter = (el: Element, play: () => void) => void
+type Observers = { enter: Enter; near: Enter }
+
+/** Cede il thread principale tra un lavoro e l'altro (niente task lunghi al caricamento) */
+const yieldToMain = () =>
+  new Promise<void>((resolve) => {
+    const s = (window as unknown as { scheduler?: { yield?: () => Promise<void> } }).scheduler
+    if (s?.yield) s.yield().then(resolve)
+    else window.setTimeout(resolve, 0)
+  })
+
+/**
+ * IntersectionObserver condiviso per eventi "una volta sola": `run` parte la prima volta
+ * che l'elemento entra nella zona indicata. Il margine enorme in alto fa scattare subito
+ * anche ciò che sta già sopra il viewport (salti con le ancore, scroll ripristinato).
+ */
+function createOnce(ctx: gsap.Context, bottomMargin: string) {
+  const handlers = new Map<Element, () => void>()
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue
+        const run = handlers.get(entry.target)
+        handlers.delete(entry.target)
+        io.unobserve(entry.target)
+        if (run) ctx.add(run)
+      }
+    },
+    { rootMargin: `99999px 0px ${bottomMargin} 0px` },
+  )
+  const observe: Enter = (el, run) => {
+    handlers.set(el, run)
+    io.observe(el)
+  }
+  return { observe, disconnect: () => io.disconnect() }
+}
+
+/**
+ * - enter: l'elemento supera il 90% del viewport → parte l'entrata
+ * - near: l'elemento è a meno di ~mezzo viewport → si prepara (es. divisione in righe),
+ *   così il lavoro pesante non pesa sul caricamento ma è pronto prima che si veda
+ */
+function createObservers(ctx: gsap.Context) {
+  const enter = createOnce(ctx, '-10%')
+  const near = createOnce(ctx, '60%')
+  return {
+    observers: { enter: enter.observe, near: near.observe } satisfies Observers,
+    disconnect: () => {
+      enter.disconnect()
+      near.disconnect()
+    },
+  }
+}
+
 const headerOffset = () => -(document.querySelector<HTMLElement>('[data-site-header]')?.offsetHeight ?? 64) + 1
 
 export function MotionProvider({ children }: { children: ReactNode }) {
@@ -44,9 +102,7 @@ export function MotionProvider({ children }: { children: ReactNode }) {
   /* ── Lenis + ticker GSAP ───────────────────────────────────────── */
   useEffect(() => {
     ScrollTrigger.config({ ignoreMobileResize: true })
-    // finita l'intro, le pagine successive entrano subito (niente attesa di 1,2s)
-    const introDone = window.setTimeout(() => document.documentElement.classList.add('intro-seen'), 2200)
-    if (prefersReducedMotion()) return () => window.clearTimeout(introDone)
+    if (prefersReducedMotion()) return
 
     const instance = new Lenis({ autoRaf: false, lerp: 0.11, smoothWheel: true, syncTouch: false })
     lenisRef.current = instance
@@ -63,7 +119,6 @@ export function MotionProvider({ children }: { children: ReactNode }) {
     gsap.ticker.lagSmoothing(0)
 
     return () => {
-      window.clearTimeout(introDone)
       gsap.ticker.remove(tick)
       instance.destroy()
       lenisRef.current = null
@@ -88,43 +143,79 @@ export function MotionProvider({ children }: { children: ReactNode }) {
   const start = useCallback(() => lenisRef.current?.start(), [])
 
   /* ── Comportamenti dichiarativi (rieseguiti a ogni cambio pagina) ─ */
+  const firstPath = useRef(pathname)
   useEffect(() => {
-    const reduce = prefersReducedMotion()
-    const ctx = gsap.context(() => {
-      const cleanups: Array<(() => void) | undefined> = []
-      if (!reduce) {
-        setupSplits()
-        setupReveals()
-        setupHighlights()
-        setupScrubWords()
-        setupParallax()
-        setupCounters()
-        setupRiseChars()
-        setupGrow()
-        cleanups.push(setupVelocity())
-        if (isFinePointer()) cleanups.push(setupMagnetic())
-      }
-      return () => cleanups.forEach((c) => c?.())
-    })
+    // dopo il primo cambio pagina l'intro è alle spalle: le pagine successive entrano subito
+    // (la classe non si aggiunge prima: cambiare una variabile sul root ricalcola gli stili di tutto)
+    if (pathname !== firstPath.current) document.documentElement.classList.add('intro-seen')
 
-    // Dopo che tutte le sezioni hanno creato i loro trigger (pin compresi): ricalcola e,
-    // se l'URL ha un'ancora, raggiungila con le posizioni corrette
-    let raf = requestAnimationFrame(() => {
+    markMotionPending()
+    const reduce = prefersReducedMotion()
+    const ctx = gsap.context(() => {})
+    const { observers, disconnect } = createObservers(ctx)
+    const { enter } = observers
+    const cleanups: Array<() => void> = []
+    let cancelled = false
+    let raf = 0
+
+    const jobs: Job[] = reduce
+      ? []
+      : [
+          ...setupSplits(observers),
+          ...setupReveals(enter),
+          ...setupCounters(enter),
+          ...setupRiseChars(enter),
+          ...setupScrubWords(),
+          ...setupParallax(),
+          setupGrow,
+          setupVelocity,
+          ...(isFinePointer() ? [setupMagnetic, setupTilt] : []),
+        ]
+
+    const run = async () => {
+      let slice = performance.now()
+      for (const job of jobs) {
+        if (cancelled) return
+        ctx.add(() => {
+          const cleanup = job()
+          if (cleanup) cleanups.push(cleanup)
+        })
+        if (performance.now() - slice > 10) {
+          await yieldToMain()
+          slice = performance.now()
+        }
+      }
+      if (cancelled) return
+      // Dopo che tutte le sezioni hanno creato i loro trigger (pin compresi): ricalcola e,
+      // se l'URL ha un'ancora, raggiungila con le posizioni corrette
       raf = requestAnimationFrame(() => {
         ScrollTrigger.refresh()
+        markMotionSettled()
         const hash = decodeURIComponent(window.location.hash)
         if (hash.length > 1) {
           const target = document.getElementById(hash.slice(1))
           if (target) scrollTo(target, { immediate: true })
         }
+        // I font cambiano le metriche: ricalcola quando sono pronti (se non lo sono già)
+        if (document.fonts && document.fonts.status !== 'loaded') {
+          document.fonts.ready.then(() => !cancelled && ScrollTrigger.refresh())
+        }
       })
-    })
-
-    // I font cambiano le metriche: ricalcola quando sono pronti
-    document.fonts?.ready.then(() => ScrollTrigger.refresh())
+    }
+    // in coda alle sezioni (che preparano pin e scrub a thread libero), dopo il primo paint
+    let cancelIdle: (() => void) | undefined
+    const kick = window.setTimeout(() => {
+      cancelIdle = whenIdle(run)
+    }, 0)
 
     return () => {
+      cancelled = true
+      window.clearTimeout(kick)
+      cancelIdle?.()
+      markMotionPending()
       cancelAnimationFrame(raf)
+      disconnect()
+      cleanups.forEach((c) => c())
       ctx.revert()
     }
   }, [pathname, scrollTo])
@@ -138,93 +229,96 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 
 const q = <T extends Element = HTMLElement>(sel: string) => Array.from(document.querySelectorAll<T & Element>(sel)) as T[]
 
-/** Titoli e paragrafi che si rivelano riga per riga */
-function setupSplits() {
-  q('[data-split]').forEach((el) => {
-    const delay = Number(el.dataset.delay ?? 0)
-    SplitText.create(el, {
-      type: 'lines',
-      mask: 'lines',
-      linesClass: 'split-line',
-      autoSplit: true,
-      aria: 'none',
-      onSplit(self) {
-        return gsap.from(self.lines, {
-          yPercent: 112,
-          rotate: 2.5,
-          transformOrigin: '0% 100%',
-          duration: 1.25,
-          stagger: 0.09,
-          delay,
-          scrollTrigger: { trigger: el, start: 'top 88%', once: true },
-        })
-      },
-    })
+/**
+ * Titoli e paragrafi che si rivelano riga per riga.
+ * Dividere in righe costa un ricalcolo del layout: si fa solo quando il testo si avvicina.
+ */
+function setupSplits({ enter, near }: Observers): Job[] {
+  return q('[data-split]').map((el) => () => {
+    near(el, () => split(el, enter))
+  })
+}
+
+function split(el: HTMLElement, enter: Enter) {
+  const delay = Number(el.dataset.delay ?? 0)
+  let played = false
+  let tween: gsap.core.Tween | null = null
+  SplitText.create(el, {
+    type: 'lines',
+    mask: 'lines',
+    linesClass: 'split-line',
+    autoSplit: true,
+    aria: 'none',
+    onSplit(self) {
+      // ri-divisione (resize, font) dopo l'entrata: le righe restano ferme e visibili
+      if (played) return
+      tween = gsap.from(self.lines, {
+        yPercent: 112,
+        rotate: 2.5,
+        transformOrigin: '0% 100%',
+        duration: 1.25,
+        stagger: 0.09,
+        delay,
+        paused: true,
+      })
+      return tween
+    },
+  })
+  enter(el, () => {
+    played = true
+    tween?.play()
   })
 }
 
 /** Entrate morbide (singole o a gruppi con stagger) */
-function setupReveals() {
-  q('[data-reveal]').forEach((el) => {
-    gsap.from(el, {
+function setupReveals(enter: Enter): Job[] {
+  const single = q('[data-reveal]').map((el) => () => {
+    const tween = gsap.from(el, {
       y: Number(el.dataset.revealY ?? 48),
       opacity: 0,
       duration: 1.2,
       delay: Number(el.dataset.delay ?? 0),
-      scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+      paused: true,
+    })
+    enter(el, () => {
+      tween.play()
     })
   })
-  q('[data-reveal-group]').forEach((group) => {
+  const groups = q('[data-reveal-group]').map((group) => () => {
     const items = group.querySelectorAll('[data-reveal-item]')
     if (!items.length) return
-    gsap.from(items, {
-      y: 40,
-      opacity: 0,
-      duration: 1.1,
-      stagger: 0.08,
-      scrollTrigger: { trigger: group, start: 'top 85%', once: true },
+    const tween = gsap.from(items, { y: 40, opacity: 0, duration: 1.1, stagger: 0.08, paused: true })
+    enter(group, () => {
+      tween.play()
     })
   })
+  return [...single, ...groups]
 }
 
-/** L'evidenziatore che passa sulle parole importanti */
-function setupHighlights() {
-  q('[data-hl]').forEach((el) => {
-    gsap.fromTo(
-      el,
-      { '--hl': '0%' },
-      {
-        '--hl': '100%',
-        duration: 1.1,
-        ease: 'power3.inOut',
-        delay: 0.35,
-        scrollTrigger: { trigger: el, start: 'top 85%', once: true },
-      },
-    )
-  })
-}
-
-/** Testo che si "colora" parola per parola mentre scorri (manifesto) */
-function setupScrubWords() {
-  q('[data-scrub-words]').forEach((el) => {
-    const words = el.querySelectorAll<HTMLElement>('.w')
-    const marks = el.querySelectorAll<HTMLElement>('mark.hl')
+/** Testo che si "accende" parola per parola mentre scorri (manifesto) */
+function setupScrubWords(): Job[] {
+  return q('[data-scrub-words]').map((el) => () => {
+    const plain = Array.from(el.querySelectorAll<HTMLElement>('.w')).filter((w) => !w.closest('mark'))
+    const marked = Array.from(el.querySelectorAll<HTMLElement>('mark .w'))
+    const all = Array.from(el.querySelectorAll<HTMLElement>('.w'))
     const tl = gsap.timeline({
-      scrollTrigger: { trigger: el, start: 'top 78%', end: 'bottom 52%', scrub: 0.6 },
+      scrollTrigger: { trigger: el, start: 'top 80%', end: 'bottom 55%', scrub: 0.6 },
     })
-    tl.fromTo(words, { opacity: 0.14 }, { opacity: 1, stagger: 0.12, ease: 'none', duration: 0.6 }, 0)
-    marks.forEach((m) => {
-      // l'evidenziatore parte quando la sua prima parola si accende
-      const first = m.querySelector('.w')
-      const index = Array.prototype.indexOf.call(words, first)
-      tl.fromTo(m, { '--hl': '0%' }, { '--hl': '100%', ease: 'none', duration: 0.6 }, Math.max(0, index) * 0.12)
+    // colore di partenza con contrasto ≥ 3:1 (testo grande): leggibile anche "spento"
+    all.forEach((w, i) => {
+      const at = i * 0.1
+      if (marked.includes(w)) tl.fromTo(w, { opacity: 0.35 }, { opacity: 1, ease: 'none', duration: 0.5 }, at)
+      else if (plain.includes(w)) {
+        const natural = getComputedStyle(w).color // rispetta parole in viola (*così*)
+        tl.fromTo(w, { color: '#8f82b8' }, { color: natural, ease: 'none', duration: 0.5 }, at)
+      }
     })
   })
 }
 
 /** Parallasse leggera sulle immagini e sui numeri di sezione */
-function setupParallax() {
-  q('[data-parallax]').forEach((el) => {
+function setupParallax(): Job[] {
+  return q('[data-parallax]').map((el) => () => {
     const amount = Number(el.dataset.parallax || 12)
     gsap.fromTo(
       el,
@@ -239,34 +333,37 @@ function setupParallax() {
 }
 
 /** Contatori animati (il valore finale è già nel DOM per SEO e screen reader) */
-function setupCounters() {
-  q('[data-counter]').forEach((el) => {
+function setupCounters(enter: Enter): Job[] {
+  return q('[data-counter]').map((el) => () => {
     const target = Number(el.dataset.counter)
     const decimals = Number(el.dataset.decimals ?? 0)
     const locale = el.dataset.locale === 'en' ? 'en-GB' : 'it-IT'
     const fmt = new Intl.NumberFormat(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    const final = el.textContent
     const obj = { v: 0 }
     el.textContent = fmt.format(0)
-    gsap.to(obj, {
-      v: target,
-      duration: 2.2,
-      ease: 'expo.out',
-      scrollTrigger: { trigger: el, start: 'top 90%', once: true },
-      onUpdate: () => {
-        el.textContent = fmt.format(obj.v)
-      },
+    enter(el, () => {
+      gsap.to(obj, {
+        v: target,
+        duration: 2.2,
+        ease: 'expo.out',
+        onUpdate: () => {
+          el.textContent = fmt.format(obj.v)
+        },
+      })
     })
+    return () => {
+      el.textContent = final
+    }
   })
 }
 
 /** Lettere che salgono dal bordo (nome gigante nel footer) */
-function setupRiseChars() {
-  q('[data-rise-chars]').forEach((el) => {
-    gsap.from(el.querySelectorAll('.ch'), {
-      yPercent: 105,
-      duration: 1.3,
-      stagger: 0.035,
-      scrollTrigger: { trigger: el, start: 'top 98%', once: true },
+function setupRiseChars(enter: Enter): Job[] {
+  return q('[data-rise-chars]').map((el) => () => {
+    const tween = gsap.from(el.querySelectorAll('.ch'), { yPercent: 105, duration: 1.3, stagger: 0.035, paused: true })
+    enter(el, () => {
+      tween.play()
     })
   })
 }
@@ -299,6 +396,32 @@ function setupVelocity() {
   }
   gsap.ticker.add(update)
   return () => gsap.ticker.remove(update)
+}
+
+/** Card che si inclinano in 3D seguendo il mouse */
+function setupTilt() {
+  const cleanups: Array<() => void> = []
+  q('[data-tilt]').forEach((el) => {
+    gsap.set(el, { transformPerspective: 1000 })
+    const rx = gsap.quickTo(el, 'rotationX', { duration: 0.7, ease: 'power3.out' })
+    const ry = gsap.quickTo(el, 'rotationY', { duration: 0.7, ease: 'power3.out' })
+    const move = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect()
+      ry(((e.clientX - r.left) / r.width - 0.5) * 9)
+      rx(-((e.clientY - r.top) / r.height - 0.5) * 9)
+    }
+    const leave = () => {
+      rx(0)
+      ry(0)
+    }
+    el.addEventListener('pointermove', move)
+    el.addEventListener('pointerleave', leave)
+    cleanups.push(() => {
+      el.removeEventListener('pointermove', move)
+      el.removeEventListener('pointerleave', leave)
+    })
+  })
+  return () => cleanups.forEach((c) => c())
 }
 
 /** Bottoni magnetici */
