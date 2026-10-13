@@ -67,7 +67,7 @@ vec3 shade(vec3 p, vec3 rd) {
   col = mix(col, lilac, pow(fres, 2.5) * 0.65);
   col += lilac * smoothstep(0.55, 1.0, n.y) * 0.12;
   vec3 h = normalize(l + v);
-  col += vec3(1.0) * pow(max(dot(n, h), 0.0), 80.0) * 0.95;
+  col += mix(vec3(1.0), lilac, 0.35) * pow(max(dot(n, h), 0.0), 48.0) * 0.55; // riflesso morbido, appena lilla
   col += vec3(1.0) * pow(max(dot(n, normalize(l2 + v)), 0.0), 30.0) * 0.18;
   col += orchid * pow(max(dot(n, l2), 0.0), 3.0) * 0.25;
   return col;
