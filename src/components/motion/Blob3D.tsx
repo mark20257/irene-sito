@@ -55,7 +55,7 @@ vec3 shade(vec3 p, vec3 rd) {
   vec3 l = normalize(vec3(-0.55, 0.75, 0.6));
   vec3 l2 = normalize(vec3(0.75, -0.45, 0.45));
   float diff = max(dot(n, l), 0.0);
-  float fres = pow(1.0 - max(dot(n, v), 0.0), 2.2);
+  float fres = pow(clamp(1.0 - dot(n, v), 0.0, 1.0), 2.2);
   vec3 deep = vec3(0.2, 0.03, 0.4);
   vec3 violet = vec3(0.66, 0.3, 1.0);
   vec3 lilac = vec3(0.91, 0.8, 1.0);
@@ -111,6 +111,32 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
     return null
   }
   return s
+}
+
+/**
+ * Autocontrollo: legge qualche pixel dentro la sfera appena disegnata e verifica che sia viola
+ * (blu ≥ rosso e verde). Alcune GPU/driver sbagliano i colori dello shader (visto: blu azzerato,
+ * sfera arancione): in quel caso si resta sulla sfera CSS, che è identica ovunque.
+ */
+function rendersPurple(gl: WebGLRenderingContext) {
+  const w = gl.drawingBufferWidth
+  const h = gl.drawingBufferHeight
+  const px = new Uint8Array(4)
+  let inside = 0
+  let purple = 0
+  for (const [fx, fy] of [
+    [0.5, 0.5],
+    [0.4, 0.58],
+    [0.6, 0.42],
+    [0.5, 0.32],
+    [0.5, 0.68],
+  ]) {
+    gl.readPixels(Math.round(w * fx), Math.round(h * fy), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px)
+    if (px[3] < 230) continue // fuori dalla sfera
+    inside++
+    if (px[2] >= px[0] * 0.75 && px[2] >= px[1]) purple++
+  }
+  return inside === 0 || purple === inside
 }
 
 /** Avvia la sfera sul canvas; restituisce la pulizia (o nulla se WebGL non è adatto). */
@@ -221,6 +247,13 @@ function startBlob(el: HTMLCanvasElement, box: HTMLDivElement, grow: boolean): (
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     if (first) {
       first = false
+      if (!rendersPurple(gl)) {
+        // colori sbagliati su questa GPU: niente 3D, resta la sfera CSS
+        box.dataset.ready = 'fallback'
+        running = false
+        frozen = true
+        return
+      }
       box.dataset.ready = 'true'
     }
     if (frozen || !visible || document.hidden) {
@@ -282,8 +315,12 @@ export function Blob3D({ className, grow = true }: { className?: string; grow?: 
 
   return (
     <div ref={wrap} className={cn('group/blob', className ?? 'relative')} aria-hidden="true">
-      {/* sfera CSS: visibile subito e se WebGL non c'è */}
-      <div className="absolute inset-[14%] rounded-full bg-[radial-gradient(circle_at_34%_28%,#f0dcff_0%,#a34dff_32%,#6a1fd6_58%,#2e0866_100%)] shadow-[0_40px_120px_-30px_rgb(150_70_250/0.65)] transition-opacity duration-700 group-data-[ready=true]/blob:opacity-0" />
+      {/* sfera CSS: visibile subito, e al posto del 3D se WebGL manca o sbaglia i colori */}
+      <div className="absolute inset-[14%] overflow-hidden rounded-full bg-[radial-gradient(circle_at_34%_28%,#f0dcff_0%,#a34dff_30%,#6a1fd6_58%,#2e0866_100%)] shadow-[inset_-28px_-36px_70px_rgb(30_4_70/0.5),inset_20px_24px_60px_rgb(240_220_255/0.22),0_40px_120px_-30px_rgb(150_70_250/0.65)] transition-opacity duration-700 group-data-[ready=true]/blob:opacity-0">
+        {/* luce orchidea sul bordo in basso a destra + riflesso morbido in alto a sinistra */}
+        <span className="absolute inset-0 bg-[radial-gradient(circle_at_76%_82%,rgb(244_170_255/0.5)_0%,rgb(244_170_255/0)_36%)]" />
+        <span className="absolute top-[13%] left-[17%] h-[24%] w-[34%] -rotate-[28deg] rounded-full bg-[radial-gradient(closest-side,rgb(255_255_255/0.7),rgb(255_255_255/0))]" />
+      </div>
       <canvas ref={canvas} className="absolute inset-0 h-full w-full opacity-0 transition-opacity duration-700 group-data-[ready=true]/blob:opacity-100" />
     </div>
   )
