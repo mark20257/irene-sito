@@ -541,7 +541,7 @@
     width: min(70vw, 34rem);
     aspect-ratio: 1;
     border-radius: 999px;
-    background: radial-gradient(circle at 35% 30%, #c4b5fd 0%, #7c4dff 38%, #3b1aa8 70%, rgb(15 7 38 / 0) 71%);
+    background: radial-gradient(circle at 35% 30%, #e2c6ff 0%, #9b45ff 38%, #4a12a8 70%, rgb(15 7 38 / 0) 71%);
     filter: blur(2px);
     opacity: 0;
     transform: scale(0.6);

@@ -40,7 +40,7 @@ export function Logo({ className }: { className?: string }) {
     <span className={cn('flex items-center gap-2.5', className)}>
       <span
         aria-hidden="true"
-        className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_34%_30%,#e4dbff_0%,#8b5cf6_40%,#4c1fd1_100%)] shadow-[0_6px_18px_-4px_rgb(107_60_246/0.6)] transition-transform duration-700 ease-out-expo group-hover:scale-110 group-hover:rotate-12"
+        className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_34%_30%,#f0dcff_0%,#a34dff_40%,#5a17c9_100%)] shadow-[0_6px_18px_-4px_rgb(150_70_250/0.6)] transition-transform duration-700 ease-out-expo group-hover:scale-110 group-hover:rotate-12"
       />
       <span className="text-[1.15rem] font-semibold tracking-[-0.03em] whitespace-nowrap">Irene Chies</span>
     </span>

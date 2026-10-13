@@ -71,7 +71,7 @@ export function PageTransition({
         className="fixed inset-0 z-[90] grid place-items-center overflow-hidden bg-deep text-white"
         style={{ visibility: 'hidden' }}
       >
-        <span className="absolute h-[60vmin] w-[60vmin] rounded-full bg-[radial-gradient(circle_at_34%_30%,#c4b5fd_0%,#7c4dff_40%,#3b1aa8_75%,transparent_76%)] opacity-80 blur-[2px]" />
+        <span className="absolute h-[60vmin] w-[60vmin] rounded-full bg-[radial-gradient(circle_at_34%_30%,#e2c6ff_0%,#9b45ff_40%,#4a12a8_75%,transparent_76%)] opacity-80 blur-[2px]" />
         <span className="relative block overflow-hidden px-[var(--gutter)] text-center">
           <span ref={label} className="block text-[clamp(2.8rem,10vw,9rem)] leading-[0.95] font-semibold tracking-[-0.055em]">
             {fallbackLabel}

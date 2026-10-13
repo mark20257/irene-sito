@@ -38,6 +38,7 @@ Controlli: `npm run lint` · `npm run typecheck`.
 | | |
 |---|---|
 | **Palette** | Viola elettrico `#6B3CF6` (azioni, accenti) · Lilla `#C4B5FD` / `#E4DBFF` · Viola profondo `#0F0726` (sezioni scure) · Inchiostro `#160C2E` · Fondo `#FBFAFF` |
+| **Sfera** | viola pieno, dalla luce all'ombra: `#F0DCFF` → `#A34DFF` → `#5A17C9` → `#2E0866` (3D, logo, intro, anteprime social, icone) |
 | **Carattere** | Geist (titoli 600, testi 400) · un solo font, niente serif o mono decorativi |
 | **Forme** | card con angoli morbidi, ombre leggere, aloni viola sfumati, pillole |
 | **Temi di sezione** | `theme-light` · `theme-soft` · `theme-violet` · `theme-dark`: l’header cambia colore in base alla sezione sotto |
@@ -144,7 +145,7 @@ scripts/
 
 ## Note di progetto
 
-- **Oggetto 3D**: WebGL puro, senza librerie (un fragment shader in raymarching, `src/components/motion/Blob3D.tsx`). Parte a pagina caricata, si ferma fuori schermo o a scheda nascosta, abbassa la risoluzione (o si ferma su un fotogramma) se il dispositivo fatica. Senza GPU vera (rendering software) o senza WebGL resta una sfera in CSS identica nei colori.
+- **Oggetto 3D**: WebGL puro, senza librerie (un fragment shader in raymarching, `src/components/motion/Blob3D.tsx`). I colori sono le costanti `deep`, `violet`, `plum`, `lilac`, `orchid` nello shader. Parte (contesto WebGL compreso) a pagina caricata e thread libero, si ferma fuori schermo o a scheda nascosta, abbassa la risoluzione (o si ferma su un fotogramma) se il dispositivo fatica. Senza GPU vera (rendering software) o senza WebGL resta una sfera in CSS identica nei colori.
 - **Intro ~1,5 s in CSS puro**: parte al primo paint senza aspettare il JavaScript, non blocca i click e non si ripete nella stessa sessione.
 - **Movimento**: smooth scroll Lenis + GSAP ScrollTrigger; titoli riga per riga (SplitText), manifesto che si accende parola per parola, cursore custom, anteprima che segue il cursore nell’indice lavori, contatori, feed nel telefono e metodo orizzontale con pin, bottoni magnetici, card che si inclinano, marquee che reagisce alla velocità dello scroll. Solo `transform`/`opacity` dove possibile.
 - **Leggero al caricamento**: le animazioni si preparano a thread libero (`whenIdle`), le entrate usano un unico IntersectionObserver invece di decine di ScrollTrigger, i testi si dividono in righe solo quando si avvicinano, il menu mobile si monta alla prima apertura, la seconda copia dei marquee nasce nel browser. Il layout delle sezioni con pin lo decide il CSS (variante `pinned:` = JS attivo + movimento consentito), così dopo l’idratazione nulla si sposta (CLS 0).

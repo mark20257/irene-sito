@@ -16,7 +16,7 @@ export function Manifesto({ locale }: { locale: Locale }) {
             <Rich text={m.text} words />
           </p>
           <p className="mt-10 flex items-center gap-3" data-reveal>
-            <span aria-hidden="true" className="h-9 w-9 rounded-full bg-[radial-gradient(circle_at_34%_30%,#e4dbff_0%,#8b5cf6_40%,#4c1fd1_100%)]" />
+            <span aria-hidden="true" className="h-9 w-9 rounded-full bg-[radial-gradient(circle_at_34%_30%,#f0dcff_0%,#a34dff_40%,#5a17c9_100%)]" />
             <span className="text-lg font-semibold">{m.signature}</span>
             <span className="text-muted">— Social, Ads & Design</span>
           </p>

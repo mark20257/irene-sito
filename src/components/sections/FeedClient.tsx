@@ -173,7 +173,7 @@ export function FeedClient({ items, labels, handle }: { items: FeedItem[]; label
                   {items.map((it, i) => (
                     <article key={i} data-post className="border-t border-ink/10 pb-3">
                       <header className="flex items-center gap-2.5 px-3 py-2.5">
-                        <span className={cn('h-8 w-8 shrink-0 rounded-full', it.author === handle ? 'bg-[radial-gradient(circle_at_34%_30%,#e4dbff_0%,#8b5cf6_45%,#4c1fd1_100%)]' : 'bg-deep')} />
+                        <span className={cn('h-8 w-8 shrink-0 rounded-full', it.author === handle ? 'bg-[radial-gradient(circle_at_34%_30%,#f0dcff_0%,#a34dff_45%,#5a17c9_100%)]' : 'bg-deep')} />
                         <span className="min-w-0 flex-1 leading-tight">
                           <span className="block truncate text-[13px] font-semibold">{it.author}</span>
                           {it.kind === 'ad' && <span className="block text-[11px] text-ink/60">{labels.phone.sponsored}</span>}

@@ -31,7 +31,7 @@ function Orb({ size, top, left, right, bottom }: { size: number; top?: number; l
         ...(right !== undefined && { right }),
         ...(bottom !== undefined && { bottom }),
         borderRadius: size,
-        backgroundImage: 'radial-gradient(circle at 34% 30%, #E4DBFF 0%, #8B5CF6 38%, #4C1FD1 72%, #1B0B4F 100%)',
+        backgroundImage: 'radial-gradient(circle at 34% 30%, #F0DCFF 0%, #A34DFF 38%, #5A17C9 72%, #24064F 100%)',
       }}
     />
   )

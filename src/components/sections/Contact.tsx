@@ -12,7 +12,7 @@ export function Contact({ locale }: { locale: Locale }) {
 
   return (
     <section id={dict.sections.contact.id} data-theme="dark" aria-labelledby="contact-title" className="theme-dark section relative overflow-hidden" data-hide-sticky>
-      <div aria-hidden="true" className="absolute -top-40 -right-40 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle_at_34%_30%,#c4b5fd_0%,#7c4dff_35%,#3b1aa8_65%,transparent_70%)] opacity-70 blur-[2px]" />
+      <div aria-hidden="true" className="absolute -top-40 -right-40 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle_at_34%_30%,#e2c6ff_0%,#9b45ff_35%,#4a12a8_65%,transparent_70%)] opacity-70 blur-[2px]" />
       <div aria-hidden="true" className="glow bottom-0 -left-40 h-[30rem] w-[30rem] opacity-30" />
 
       <div className="wrap relative">
