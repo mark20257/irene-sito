@@ -93,6 +93,9 @@ void main() {
   float alpha = hit ? 1.0 : 1.0 - smoothstep(0.0, px, minD);
   if (alpha <= 0.0) { gl_FragColor = vec4(0.0); return; }
   vec3 col = shade(ro + rd * (hit ? t : minT), rd);
+  // satura a [0,1]: alcune GPU (es. su Mac) non lo fanno da sole e "riavvolgono" i valori
+  // oltre 1, così il blu sparisce e il viola diventa arancione
+  col = clamp(col, 0.0, 1.0);
   gl_FragColor = vec4(col * alpha, alpha);
 }
 `
